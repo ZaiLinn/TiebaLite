@@ -116,10 +116,13 @@ object EmoticonUtil {
         }
     }
 
+    /** 表情正则只编译一次：列表滑动时每个楼层/卡片都会用到 */
+    private val emoticonPattern: Pattern by lazy { Pattern.compile(getRegex(EMOTICON_ALL_TYPE)) }
+
     @OptIn(ExperimentalTextApi::class)
     val String.emoticonString: AnnotatedString
         get() {
-            val regexPattern = Pattern.compile(getRegex(EMOTICON_ALL_TYPE))
+            val regexPattern = emoticonPattern
             val matcher = regexPattern.matcher(this)
             return buildAnnotatedString {
                 withAnnotation("Emoticon", "true") {
@@ -147,7 +150,7 @@ object EmoticonUtil {
             if (hasStringAnnotations("Emoticon", 0, length)) {
                 return this
             }
-            val regexPattern = Pattern.compile(getRegex(EMOTICON_ALL_TYPE))
+            val regexPattern = emoticonPattern
             val matcher = regexPattern.matcher(this.text)
             return buildAnnotatedString {
                 withAnnotation("Emoticon", "true") {

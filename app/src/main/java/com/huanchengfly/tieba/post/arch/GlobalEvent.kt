@@ -92,7 +92,7 @@ inline fun <reified Event : UiEvent> CoroutineScope.onGlobalEvent(
             }
             .cancellable()
             .collect {
-                Log.i("GlobalEvent", "onGlobalEvent: $it")
+                Log.i("GlobalEvent", "onGlobalEvent: ${it.javaClass.simpleName}")
                 listener(it)
             }
     }
@@ -120,7 +120,7 @@ inline fun <reified Event : UiEvent> onGlobalEvent(
             .filter { currentFilter(it) }
             .cancellable()
             .collect {
-                Log.i("GlobalEvent", "onGlobalEvent: $it")
+                Log.i("GlobalEvent", "onGlobalEvent: ${it.javaClass.simpleName}")
                 currentListener(it)
             }
     }

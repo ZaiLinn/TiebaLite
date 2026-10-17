@@ -273,12 +273,16 @@ fun ThreadContent(
     maxLines: Int = 5,
     highlightKeywords: ImmutableList<String> = persistentListOf(),
 ) {
-    val content = buildAnnotatedString {
+    val goodTip = stringResource(id = R.string.tip_good)
+    val accentColor = ExtendedTheme.colors.accent
+    // 缓存拼好的文本：表情解析要跑正则，滑动时卡片反复重组不该每次都重算
+    val content = remember(title, abstractText, tabName, showTitle, showAbstract, isGood, goodTip, accentColor) {
+        buildAnnotatedString {
         if (showTitle) {
             withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
                 if (isGood) {
-                    withStyle(style = SpanStyle(color = ExtendedTheme.colors.accent)) {
-                        append(stringResource(id = R.string.tip_good))
+                    withStyle(style = SpanStyle(color = accentColor)) {
+                        append(goodTip)
                     }
                     append(" ")
                 }
@@ -296,6 +300,7 @@ fun ThreadContent(
         }
         if (showAbstract) {
             append(abstractText.emoticonString)
+        }
         }
     }
 
@@ -771,12 +776,14 @@ fun FeedCard(
             }
         },
         content = {
+            // 摘要要遍历富文本片段、跑正则，只算一次
+            val abstractText = remember(item) { item.get { abstractText } }
             ThreadContent(
                 title = item.get { title },
-                abstractText = item.get { abstractText },
+                abstractText = abstractText,
                 tabName = item.get { tabName },
                 showTitle = item.get { isNoTitle != 1 && title.isNotBlank() },
-                showAbstract = item.get { abstractText.isNotBlank() },
+                showAbstract = abstractText.isNotBlank(),
                 isGood = item.get { isGood == 1 },
             )
 
@@ -851,11 +858,13 @@ fun FeedCard(
             )
         },
         content = {
+            // 摘要要遍历富文本片段、跑正则，只算一次
+            val abstractText = remember(item) { item.get { abstractText } }
             ThreadContent(
                 title = item.get { title },
-                abstractText = item.get { abstractText },
+                abstractText = abstractText,
                 showTitle = item.get { is_ntitle != 1 && title.isNotBlank() },
-                showAbstract = item.get { abstractText.isNotBlank() },
+                showAbstract = abstractText.isNotBlank(),
             )
 
             ThreadMedia(

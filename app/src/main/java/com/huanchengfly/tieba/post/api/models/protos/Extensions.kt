@@ -29,10 +29,12 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
+private val MULTI_SPACE_REGEX = Regex(" {2,}")
+
 val List<Abstract>.abstractText: String
     get() = joinToString(separator = "") {
         when (it.type) {
-            0 -> it.text.replace(Regex(" {2,}"), " ")
+            0 -> it.text.replace(MULTI_SPACE_REGEX, " ")
             4 -> it.text
 
             else -> ""
@@ -42,7 +44,7 @@ val List<Abstract>.abstractText: String
 val ThreadInfo.abstractText: String
     get() = richAbstract.joinToString(separator = "") {
         when (it.type) {
-            0 -> it.text.replace(Regex(" {2,}"), " ")
+            0 -> it.text.replace(MULTI_SPACE_REGEX, " ")
             2 -> {
                 EmoticonManager.registerEmoticon(it.text, it.c)
                 "#(${it.c})"
@@ -55,7 +57,7 @@ val ThreadInfo.abstractText: String
 val PostInfoList.abstractText: String
     get() = rich_abstract.joinToString(separator = "") {
         when (it.type) {
-            0 -> it.text.replace(Regex(" {2,}"), " ")
+            0 -> it.text.replace(MULTI_SPACE_REGEX, " ")
             2 -> {
                 EmoticonManager.registerEmoticon(it.text, it.c)
                 "#(${it.c})"

@@ -45,18 +45,18 @@ import androidx.compose.ui.unit.dp
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.theme.compose.loadMoreIndicator
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private val LoadDistance = 70.dp
+private const val DEFAULT_PRELOAD_COUNT = 5
+private const val LOAD_MORE_THROTTLE_MS = 500L
 
-@OptIn(ExperimentalMaterialApi::class, FlowPreview::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun LoadMoreLayout(
     isLoading: Boolean,
@@ -72,8 +72,11 @@ fun LoadMoreLayout(
         )
     },
     lazyListState: LazyListState? = null,
-    isEmpty: Boolean = lazyListState?.layoutInfo?.totalItemsCount == 0,
-    preloadCount: Int = 1,
+    // null 表示按列表项数判断。不要在参数默认值里读 lazyListState.layoutInfo：
+    // 它在滑动时每帧变化，在组合阶段读取会让整个列表每帧重组
+    isEmpty: Boolean? = null,
+    // 距离列表末尾还剩几项时开始加载下一页；只剩最后一项才加载会让用户在底部干等网络
+    preloadCount: Int = DEFAULT_PRELOAD_COUNT,
     content: @Composable () -> Unit,
 ) {
     val loadDistance = with(LocalDensity.current) { LoadDistance.toPx() }
@@ -90,13 +93,16 @@ fun LoadMoreLayout(
     val coroutineScope = rememberCoroutineScope()
     DisposableEffect(Unit) {
         val job = coroutineScope.launch {
-            loadMoreFlow
-                .sample(500)
-                .collect {
-                    curOnLoadMore()
-                    waitingStateReset = true
-                    lastTriggerTime = it
-                }
+            // 首次触发立即加载，500ms 内的重复触发丢弃。
+            // 原来用 sample(500)，要等到下一个采样点才执行，首次加载白白多等最多半秒
+            var lastLoadAt = 0L
+            loadMoreFlow.collect {
+                if (it - lastLoadAt < LOAD_MORE_THROTTLE_MS) return@collect
+                lastLoadAt = it
+                curOnLoadMore()
+                waitingStateReset = true
+                lastTriggerTime = it
+            }
         }
 
         onDispose { job.cancel() }
@@ -113,8 +119,9 @@ fun LoadMoreLayout(
     LaunchedEffect(curLazyListState) {
         curLazyListState?.let { state ->
             snapshotFlow {
+                val listIsEmpty = curIsEmpty ?: (state.layoutInfo.totalItemsCount == 0)
                 val shouldPreload =
-                    !curIsEmpty && curCanLoadMore && !curIsLoading && curPreloadCount > 0
+                    !listIsEmpty && curCanLoadMore && !curIsLoading && curPreloadCount > 0
                 val isInPreloadRange =
                     state.firstVisibleItemIndex + state.layoutInfo.visibleItemsInfo.size - 1 >= state.layoutInfo.totalItemsCount - curPreloadCount
                 shouldPreload && isInPreloadRange

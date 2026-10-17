@@ -45,10 +45,12 @@ abstract class BaseViewModel<
 
     val uiState = partialChangeProducer.toPartialChangeFlow(_intentFlow)
         .onEach {
-            Log.i("ViewModel", "partialChange $it")
+            // 只记类名：partialChange 里可能带着整页数据，toString 会生成巨大的字符串，
+            // 加载每一页都制造大量垃圾、触发 GC 让主线程掉帧（R8 去掉 Log 调用后参数拼接仍可能保留）
+            Log.i("ViewModel", "partialChange ${it.javaClass.simpleName}")
             val event = dispatchEvent(it)
             if (event != null) {
-                Log.i("ViewModel", "event $event")
+                Log.i("ViewModel", "event ${event.javaClass.simpleName}")
                 _internalUiEventFlow.emit(event)
             }
         }
@@ -62,7 +64,7 @@ abstract class BaseViewModel<
     protected open fun dispatchEvent(partialChange: PC): UiEvent? = null
 
     fun send(intent: Intent) {
-        Log.i("ViewModel", "send $intent")
+        Log.i("ViewModel", "send ${intent.javaClass.simpleName}")
         viewModelScope.launch {
             _intentFlow.emit(intent)
         }

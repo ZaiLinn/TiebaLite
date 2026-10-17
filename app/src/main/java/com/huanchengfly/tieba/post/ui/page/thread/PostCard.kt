@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenuItem
@@ -263,25 +264,22 @@ fun PostCard(
                                 )
                             },
                             name = {
+                                val context = LocalContext.current
+                                val userName = remember(author.name, author.nameShow) {
+                                    StringUtil.getUsernameAnnotatedString(context, author.name, author.nameShow)
+                                }
                                 UserNameText(
-                                    userName = StringUtil.getUsernameAnnotatedString(
-                                        LocalContext.current,
-                                        author.name,
-                                        author.nameShow
-                                    ),
+                                    userName = userName,
                                     userLevel = author.level_id,
                                     isLz = author.id == threadAuthorId,
                                     bawuType = author.bawuType,
                                 )
                             },
                             desc = {
-                                Text(
-                                    text = getDescText(
-                                        post.time.toLong(),
-                                        post.floor,
-                                        author.ip_address
-                                    )
-                                )
+                                val descText = remember(post.time, post.floor, author.ip_address) {
+                                    getDescText(post.time.toLong(), post.floor, author.ip_address)
+                                }
+                                Text(text = descText)
                             },
                             onClick = {
                                 onUserClick(author)
@@ -338,6 +336,13 @@ fun PostCard(
                                 .padding(vertical = 12.dp),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
+                            // 楼中楼预览共用一个"楼主"标签：每建一个都要做一次文字测量
+                            val lzChip = buildChipInlineContent(
+                                stringResource(id = R.string.tip_lz),
+                                backgroundColor = ExtendedTheme.colors.textSecondary.copy(alpha = 0.1f),
+                                color = ExtendedTheme.colors.textSecondary
+                            )
+                            val subPostInlineContent = remember(lzChip) { mapOf("Lz" to lzChip) }
                             subPosts.fastForEach { item ->
                                 BlockableContent(
                                     blocked = item.blocked,
@@ -355,6 +360,7 @@ fun PostCard(
                                     SubPostItem(
                                         subPostList = item.subPost,
                                         subPostContent = item.subPostContent,
+                                        inlineContent = subPostInlineContent,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 12.dp),
@@ -399,6 +405,7 @@ fun PostCard(
 private fun SubPostItem(
     subPostList: ImmutableHolder<SubPostList>,
     subPostContent: AnnotatedString,
+    inlineContent: Map<String, InlineTextContent>,
     modifier: Modifier = Modifier,
     onReplyClick: ((SubPostList) -> Unit)?,
     onOpenSubPosts: (Long) -> Unit,
@@ -456,13 +463,7 @@ private fun SubPostItem(
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 4,
                 lineSpacing = 0.4.sp,
-                inlineContent = mapOf(
-                    "Lz" to buildChipInlineContent(
-                        stringResource(id = R.string.tip_lz),
-                        backgroundColor = ExtendedTheme.colors.textSecondary.copy(alpha = 0.1f),
-                        color = ExtendedTheme.colors.textSecondary
-                    ),
-                )
+                inlineContent = inlineContent,
             )
         }
     }
@@ -476,34 +477,46 @@ fun UserNameText(
     isLz: Boolean = false,
     bawuType: String? = null,
 ) {
-    val text = buildAnnotatedString {
-        append(userName)
-        append(" ")
-        if (userLevel > 0) appendInlineContent("Level", alternateText = "$userLevel")
-        if (!bawuType.isNullOrBlank()) {
+    val showBawu = !bawuType.isNullOrBlank()
+    val text = remember(userName, userLevel, bawuType, isLz) {
+        buildAnnotatedString {
+            append(userName)
             append(" ")
-            appendInlineContent("Bawu", alternateText = bawuType)
+            if (userLevel > 0) appendInlineContent("Level", alternateText = "$userLevel")
+            if (showBawu) {
+                append(" ")
+                appendInlineContent("Bawu", alternateText = bawuType.orEmpty())
+            }
+            if (isLz) {
+                append(" ")
+                appendInlineContent("Lz")
+            }
         }
-        if (isLz) {
-            append(" ")
-            appendInlineContent("Lz")
+    }
+    // 只为实际显示的标签建 InlineTextContent：每个标签都要做一次文字测量
+    val inlineContent = buildMap {
+        if (userLevel > 0) {
+            val levelColor = remember(userLevel) { Color(getIconColorByLevel("$userLevel")) }
+            put(
+                "Level",
+                buildChipInlineContent("18", color = levelColor, backgroundColor = levelColor.copy(alpha = 0.25f))
+            )
         }
+        if (showBawu) {
+            put(
+                "Bawu",
+                buildChipInlineContent(
+                    bawuType.orEmpty(),
+                    color = ExtendedTheme.colors.primary,
+                    backgroundColor = ExtendedTheme.colors.primary.copy(alpha = 0.1f)
+                )
+            )
+        }
+        if (isLz) put("Lz", buildChipInlineContent(stringResource(id = R.string.tip_lz)))
     }
     Text(
         text = text,
-        inlineContent = mapOf(
-            "Level" to buildChipInlineContent(
-                "18",
-                color = Color(getIconColorByLevel("$userLevel")),
-                backgroundColor = Color(getIconColorByLevel("$userLevel")).copy(alpha = 0.25f)
-            ),
-            "Bawu" to buildChipInlineContent(
-                bawuType ?: "",
-                color = ExtendedTheme.colors.primary,
-                backgroundColor = ExtendedTheme.colors.primary.copy(alpha = 0.1f)
-            ),
-            "Lz" to buildChipInlineContent(stringResource(id = R.string.tip_lz)),
-        ),
+        inlineContent = inlineContent,
         modifier = modifier
     )
 }
