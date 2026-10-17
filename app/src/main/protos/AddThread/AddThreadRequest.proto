@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package tieba.addThread;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.addThread";
+
+import "AddThread/AddThreadRequestData.proto";
+
+// c/c/thread/add?cmd=309730，字段编号来自 n0099/tbclient.protobuf 的 java/AddThread
+message AddThreadRequest {
+    AddThreadRequestData data = 1;
+}

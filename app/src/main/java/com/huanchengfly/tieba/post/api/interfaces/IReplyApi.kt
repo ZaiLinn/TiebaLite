@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.api.interfaces
 
 import com.huanchengfly.tieba.post.api.models.*
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostResponse
+import com.huanchengfly.tieba.post.api.models.protos.addThread.AddThreadResponse
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.models.PhotoInfoBean
 import kotlinx.coroutines.Deferred
@@ -227,4 +228,17 @@ interface IReplyApi {
         vcodeMd5: String? = null,
         vcodeType: String? = null,
     ): Flow<AddPostResponse>
+
+    /** 发新帖（c/c/thread/add，cmd 309730）；[title] 为空时发无标题帖 */
+    fun addThreadFlow(
+        title: String,
+        content: String,
+        forumId: String,
+        forumName: String,
+        tbs: String? = null,
+        nameShow: String? = null,
+        vcode: String? = null,
+        vcodeMd5: String? = null,
+        vcodeType: String? = null,
+    ): Flow<AddThreadResponse>
 }

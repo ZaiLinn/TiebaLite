@@ -825,7 +825,7 @@ fun ReplyPage(
 }
 
 @Composable
-private fun EmoticonPanel(
+internal fun EmoticonPanel(
     modifier: Modifier = Modifier,
     onEmoticonClick: (Emoticon) -> Unit,
 ) {
@@ -867,7 +867,7 @@ private fun EmoticonPanel(
 }
 
 @Composable
-private fun ImagePanel(
+internal fun ImagePanel(
     selectedImages: ImmutableList<String>,
     onNewImageSelected: (List<Uri>) -> Unit,
     onRemoveImage: (Int) -> Unit,

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package tieba.addThread;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.addThread";
+
+import "PostAntiInfo.proto";
+import "ReplyExp.proto";
+import "Toast.proto";
+
+// 与回帖响应基本一致，但 19 号是 invitees_number、toast 在 20 号
+message AddThreadResponseData {
+  string opgroup = 1;
+  string tid = 2;
+  string pid = 3;
+  string video_id = 4;
+  string msg = 5;
+  string pre_msg = 6;
+  string color_msg = 7;
+  ReplyExp exp = 9;
+  PostAntiInfo info = 14;
+  string ext_msg = 18;
+  string invitees_number = 19;
+  Toast toast = 20;
+}

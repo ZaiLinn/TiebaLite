@@ -465,6 +465,12 @@
     <string name="settings_comment_filter_skip_nested_summary">只过滤楼层，楼中楼预览里的回复全部显示</string>
     <string name="title_vcode">安全验证</string>
     <string name="title_at_user">@ 好友</string>
+    <string name="title_post_thread">发帖 · %1$s吧</string>
+    <string name="hint_post_thread_title">标题（可不填）</string>
+    <string name="hint_post_thread_content">说点什么…</string>
+    <string name="tip_post_thread_images">已选 %1$d 张图片</string>
+    <string name="toast_post_thread_success">发帖成功</string>
+    <string name="toast_post_thread_failed">发帖失败：%1$s</string>
     <string name="hint_at_user_search">搜索用户</string>
     <string name="tip_at_user_empty">没有找到用户</string>
     <string name="hint_vcode">输入图中的验证码</string>

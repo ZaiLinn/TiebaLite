@@ -9,7 +9,7 @@ import okhttp3.Response
 object ProtoFailureResponseInterceptor : Interceptor {
     /** 官方客户端（NewWriteModel）同样以 5、6 判定需要验证码 */
     val VCODE_ERROR_CODES = setOf(5, 6)
-    private const val ADD_POST_PATH = "/c/c/post/add"
+    private val VCODE_PATHS = setOf("/c/c/post/add", "/c/c/thread/add")
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val response = chain.proceed(chain.request())
@@ -31,9 +31,9 @@ object ProtoFailureResponseInterceptor : Interceptor {
         }
 
         val errorCode = protoCommonResponse.error?.error_code ?: 0
-        // 回帖接口用错误码 5/6 表示需要验证码，验证码信息在响应的 data.info 里，
-        // 交给调用方解析（见 AddPostRepository），不能在这里抛掉
-        if (errorCode in VCODE_ERROR_CODES && chain.request().url.encodedPath.endsWith(ADD_POST_PATH)) {
+        // 回帖、发帖接口用错误码 5/6 表示需要验证码，验证码信息在响应的 data.info 里，
+        // 交给调用方解析（见 AddPostRepository / AddThreadRepository），不能在这里抛掉
+        if (errorCode in VCODE_ERROR_CODES && chain.request().url.encodedPath in VCODE_PATHS) {
             return response
         }
         if (protoCommonResponse.error != null && protoCommonResponse.error.error_code != 0) {

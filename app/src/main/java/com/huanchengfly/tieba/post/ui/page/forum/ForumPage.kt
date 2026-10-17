@@ -613,7 +613,13 @@ fun ForumPage(
                                     }
 
                                     else -> {
-                                        context.toastShort(R.string.toast_feature_unavailable)
+                                        // 默认（"post"）：发新帖
+                                        val fid = forumInfo?.get { id }
+                                        if (fid == null || fid == 0L) {
+                                            context.toastShort(R.string.toast_feature_unavailable)
+                                        } else {
+                                            navigator.navigate("post_thread/$fid?forumName=${Uri.encode(forumName)}")
+                                        }
                                     }
                                 }
                             },

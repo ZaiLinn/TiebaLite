@@ -43,6 +43,7 @@ object Routes {
     // 其他
     const val WEBVIEW = "webview/{initialUrl}"
     const val LOGIN = "login"
+    const val POST_THREAD = "post_thread/{forumId}?forumName={forumName}"
     const val PRIVATE_MESSAGES = "im"
     const val PRIVATE_CHAT = "im/chat/{uid}?name={name}&portrait={portrait}"
     const val HOT_TOPIC_LIST = "hot_topic_list"

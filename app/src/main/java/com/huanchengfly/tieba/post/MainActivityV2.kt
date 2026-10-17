@@ -121,6 +121,7 @@ import com.huanchengfly.tieba.post.ui.page.settings.theme.AppThemePage
 import com.huanchengfly.tieba.post.ui.page.subposts.SubPostsPage
 import com.huanchengfly.tieba.post.ui.page.subposts.SubPostsSheetPage
 import com.huanchengfly.tieba.post.ui.page.thread.ThreadPage
+import com.huanchengfly.tieba.post.ui.page.thread.post.PostThreadPage
 import com.huanchengfly.tieba.post.ui.page.threadstore.ThreadStorePage
 import com.huanchengfly.tieba.post.ui.page.user.UserProfilePage
 import com.huanchengfly.tieba.post.ui.page.webview.WebViewPage
@@ -807,6 +808,20 @@ class MainActivityV2 : BaseComposeActivity() {
                             }
 
                             composable(Routes.LOGIN) { LoginPage(navigator = navController) }
+
+                            composable(
+                                route = Routes.POST_THREAD,
+                                arguments = listOf(
+                                    navArgument(Routes.Args.FORUM_ID) { type = NavType.LongType },
+                                    navArgument(Routes.Args.FORUM_NAME) { type = NavType.StringType; defaultValue = "" },
+                                )
+                            ) { backStackEntry ->
+                                PostThreadPage(
+                                    forumId = backStackEntry.arguments?.getLong(Routes.Args.FORUM_ID) ?: 0L,
+                                    forumName = backStackEntry.arguments?.getString(Routes.Args.FORUM_NAME).orEmpty(),
+                                    navigator = navController,
+                                )
+                            }
 
                             // === 私信 ===
                             composable(Routes.PRIVATE_MESSAGES) { PrivateMessageListPage(navigator = navController) }

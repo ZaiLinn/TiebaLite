@@ -1,6 +1,7 @@
 package com.huanchengfly.tieba.post.api.retrofit.interfaces
 
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostResponse
+import com.huanchengfly.tieba.post.api.models.protos.addThread.AddThreadResponse
 import com.huanchengfly.tieba.post.api.models.protos.forumRecommend.ForumRecommendResponse
 import com.huanchengfly.tieba.post.api.models.protos.forumRuleDetail.ForumRuleDetailResponse
 import com.huanchengfly.tieba.post.api.models.protos.frsPage.FrsPageResponse
@@ -77,6 +78,11 @@ interface OfficialProtobufTiebaApi {
     fun pbFloorFlow(
         @Body body: MyMultipartBody,
     ): Flow<PbFloorResponse>
+
+    @POST("/c/c/thread/add?cmd=309730&format=protobuf")
+    fun addThreadFlow(
+        @Body body: MyMultipartBody,
+    ): Flow<AddThreadResponse>
 
     @POST("/c/c/post/add?cmd=309731&format=protobuf")
     fun addPostFlow(

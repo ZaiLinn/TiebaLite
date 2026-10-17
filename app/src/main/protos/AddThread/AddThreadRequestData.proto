@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package tieba.addThread;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.addThread";
+
+import "CommonRequest.proto";
+
+// 只声明客户端用到的字段，完整定义见 n0099/tbclient.protobuf java/AddThread/DataReq.java
+message AddThreadRequestData {
+  CommonRequest common = 1;
+  string tbs = 4;
+  string anonymous = 6;
+  string can_no_forum = 7;
+  string is_feedback = 8;
+  string takephoto_num = 9;
+  string entrance_type = 10;
+  string vcode = 13;
+  string vcode_md5 = 14;
+  string vcode_type = 15;
+  string vcode_tag = 16;
+  string new_vcode = 18;
+  string content = 19;
+  string fid = 26;
+  string kw = 27;
+  string is_hide = 29;
+  string call_from = 37;
+  string title = 38;
+  string is_ntitle = 41;
+  string is_location = 44;
+  string name_show = 75;
+  string is_pictxt = 77;
+  int32 show_custom_figure = 80;
+  int32 is_show_bless = 87;
+}

@@ -11,16 +11,19 @@ import com.huanchengfly.tieba.post.api.models.WebUploadPicBean
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostRequest
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostRequestData
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostResponse
+import com.huanchengfly.tieba.post.api.models.protos.addThread.AddThreadRequest
+import com.huanchengfly.tieba.post.api.models.protos.addThread.AddThreadRequestData
+import com.huanchengfly.tieba.post.api.models.protos.addThread.AddThreadResponse
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
 import com.huanchengfly.tieba.post.models.PhotoInfoBean
 import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.ImageUtil
-import java.io.FileInputStream
-import java.io.IOException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
+import java.io.FileInputStream
+import java.io.IOException
 
 object ReplyApiImpl : IReplyApi {
     override fun webUploadPic(photoInfoBean: PhotoInfoBean): Call<WebUploadPicBean> {
@@ -258,6 +261,57 @@ object ReplyApiImpl : IReplyApi {
                             vcode_md5 = vcodeMd5.orEmpty(),
                             vcode_type = vcodeType.orEmpty(),
                             vcode_tag = "12",
+                        )
+                    ),
+                    clientVersion = ClientVersion.TIEBA_V12_POST
+                )
+            )
+    }
+
+    override fun addThreadFlow(
+        title: String,
+        content: String,
+        forumId: String,
+        forumName: String,
+        tbs: String?,
+        nameShow: String?,
+        vcode: String?,
+        vcodeMd5: String?,
+        vcodeType: String?,
+    ): Flow<AddThreadResponse> {
+        val finalTbs = tbs ?: AccountUtil.getAccountInfo { this.tbs }
+        return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_POST_API
+            .addThreadFlow(
+                buildProtobufRequestBody(
+                    AddThreadRequest(
+                        AddThreadRequestData(
+                            common = buildCommonRequest(
+                                clientVersion = ClientVersion.TIEBA_V12_POST,
+                                tbs = finalTbs
+                            ),
+                            tbs = finalTbs.orEmpty(),
+                            // 取值与回帖（addPostFlow）保持一致
+                            anonymous = "1",
+                            can_no_forum = "0",
+                            is_feedback = "0",
+                            takephoto_num = "0",
+                            entrance_type = "0",
+                            vcode = vcode.orEmpty(),
+                            vcode_md5 = vcodeMd5.orEmpty(),
+                            vcode_type = vcodeType.orEmpty(),
+                            vcode_tag = "12",
+                            new_vcode = "1",
+                            content = content,
+                            fid = forumId,
+                            kw = forumName,
+                            is_hide = "0",
+                            title = title,
+                            is_ntitle = if (title.isBlank()) "1" else "0",
+                            is_location = "0",
+                            name_show = nameShow ?: AccountUtil.getAccountInfo { this.nameShow }.orEmpty(),
+                            is_pictxt = "0",
+                            show_custom_figure = 0,
+                            is_show_bless = 0,
                         )
                     ),
                     clientVersion = ClientVersion.TIEBA_V12_POST
