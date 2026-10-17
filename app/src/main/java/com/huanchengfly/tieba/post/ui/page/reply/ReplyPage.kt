@@ -52,6 +52,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.InsertPhoto
 import androidx.compose.material.icons.rounded.Add
@@ -259,6 +260,17 @@ internal fun ReplyPageContent(
             this.setText(StringUtil.getEmoticonContent(this, this.text))
             setSelection(start + text.length)
         }
+    }
+
+    var showAtUserPicker by remember { mutableStateOf(false) }
+    if (showAtUserPicker) {
+        AtUserPickerDialog(
+            onPick = { user ->
+                showAtUserPicker = false
+                insertEmoticon("@${user.displayName} ")
+            },
+            onDismiss = { showAtUserPicker = false },
+        )
     }
 
     val curTextFlow = remember { MutableStateFlow("") }
@@ -557,6 +569,16 @@ internal fun ReplyPageContent(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            IconButton(
+                onClick = { showAtUserPicker = true },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AlternateEmail,
+                    contentDescription = stringResource(id = R.string.title_at_user),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             IconButton(
                 onClick = { switchToPanel(EMOJI) },
                 modifier = Modifier.size(24.dp)

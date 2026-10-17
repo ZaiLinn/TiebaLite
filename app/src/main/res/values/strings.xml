@@ -464,6 +464,9 @@
     <string name="settings_comment_filter_skip_nested">不过滤楼中楼</string>
     <string name="settings_comment_filter_skip_nested_summary">只过滤楼层，楼中楼预览里的回复全部显示</string>
     <string name="title_vcode">安全验证</string>
+    <string name="title_at_user">@ 好友</string>
+    <string name="hint_at_user_search">搜索用户</string>
+    <string name="tip_at_user_empty">没有找到用户</string>
     <string name="hint_vcode">输入图中的验证码</string>
     <string name="title_private_message_experimental">私信（实验）</string>
     <string name="tip_private_message_off">已关闭。开启后可在消息页和用户主页收发私信</string>

@@ -10,6 +10,7 @@ import com.huanchengfly.tieba.post.api.buildProtobufRequestBody
 import com.huanchengfly.tieba.post.api.getScreenHeight
 import com.huanchengfly.tieba.post.api.getScreenWidth
 import com.huanchengfly.tieba.post.api.interfaces.IUserApi
+import com.huanchengfly.tieba.post.api.models.AtUserListBean
 import com.huanchengfly.tieba.post.api.models.CommonResponse
 import com.huanchengfly.tieba.post.api.models.FollowBean
 import com.huanchengfly.tieba.post.api.models.InitNickNameBean
@@ -36,12 +37,12 @@ import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
 import com.huanchengfly.tieba.post.api.retrofit.body.MyMultipartBody
 import com.huanchengfly.tieba.post.models.MyInfoBean
 import com.huanchengfly.tieba.post.utils.AccountUtil
-import java.io.File
-import java.net.URLEncoder
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
+import java.io.File
+import java.net.URLEncoder
 
 object UserApiImpl : IUserApi {
     override fun myProfileAsync(): Deferred<ApiResult<com.huanchengfly.tieba.post.api.models.web.Profile>> =
@@ -264,4 +265,7 @@ object UserApiImpl : IUserApi {
             )
         )
     }
+
+    override fun atUserListFlow(word: String?): Flow<AtUserListBean> =
+        RetrofitTiebaApi.OFFICIAL_TIEBA_API.atSearchUserListFlow(word?.ifBlank { null })
 }

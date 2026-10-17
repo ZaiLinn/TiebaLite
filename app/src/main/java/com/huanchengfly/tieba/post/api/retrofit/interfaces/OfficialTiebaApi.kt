@@ -8,6 +8,7 @@ import com.huanchengfly.tieba.post.api.Param
 import com.huanchengfly.tieba.post.api.getScreenHeight
 import com.huanchengfly.tieba.post.api.getScreenWidth
 import com.huanchengfly.tieba.post.api.models.*
+import com.huanchengfly.tieba.post.api.models.AtUserListBean
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.api.retrofit.body.MyMultipartBody
 import com.huanchengfly.tieba.post.utils.AccountUtil
@@ -407,6 +408,18 @@ interface OfficialTiebaApi {
         @Field("stoken") sToken: String? = AccountUtil.getSToken(),
         @retrofit2.http.Header("client_user_token") client_user_token: String? = AccountUtil.getUid(),
     ): Flow<AddPostBean>
+
+    /** @ 好友候选：不带 word 时返回关注的人（参数同官方客户端 AtListActivity） */
+    @POST("/c/u/follow/atSearchUserList")
+    @FormUrlEncoded
+    @Headers(
+        "${Header.FORCE_LOGIN}: ${Header.FORCE_LOGIN_TRUE}",
+    )
+    fun atSearchUserListFlow(
+        @Field("word") word: String?,
+        @Field("rn") rn: Int = 100,
+        @Field("stoken") sToken: String? = AccountUtil.getSToken(),
+    ): Flow<AtUserListBean>
 
     @POST("/c/c/post/rmstore")
     @FormUrlEncoded

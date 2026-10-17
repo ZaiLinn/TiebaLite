@@ -1,16 +1,17 @@
 package com.huanchengfly.tieba.post.api.interfaces
 
 import com.huanchengfly.tieba.post.api.models.*
+import com.huanchengfly.tieba.post.api.models.AtUserListBean
 import com.huanchengfly.tieba.post.api.models.protos.getUserInfo.GetUserInfoResponse
 import com.huanchengfly.tieba.post.api.models.protos.profile.ProfileResponse
 import com.huanchengfly.tieba.post.api.models.protos.userLike.UserLikeResponse
 import com.huanchengfly.tieba.post.api.models.protos.userPost.UserPostResponse
 import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.models.MyInfoBean
-import java.io.File
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
+import java.io.File
 
 interface IUserApi {
     /**
@@ -247,4 +248,7 @@ interface IUserApi {
         bduss: String?,
         sToken: String?,
     ): Flow<GetUserInfoResponse>
+
+    /** @ 好友候选；[word] 为空时返回关注的人 */
+    fun atUserListFlow(word: String? = null): Flow<AtUserListBean>
 }
