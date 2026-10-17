@@ -92,13 +92,13 @@ class UpdateManager @Inject constructor(
      * （tieba.update.mock / tieba.update.mockRoot，仅 debug 生效）读取后经 [check] 的
      * mockRoot/enableMock 注入；未传覆盖值时回落到 gradle 注入的 MOCK_UPDATE_API_ROOT。
      * 显式开关 mockUpdateEnabled：true 时 debug 构建走 mock 源；默认 false 走官方来源
-     * （用户选择的平台，默认 Codeberg），保证 debug 构建的日常更新检查/真机验证走真实
+     * （默认 GitHub），保证 debug 构建的日常更新检查/真机验证走真实
      * 链路（mock 只在验收时打开）。
      */
     private var mockApiRoot: String? = null
     private var mockUpdateEnabled: Boolean = false
 
-    /** 用户选择的更新检查平台来源（关于页设置，DataStore 持久化，默认 Codeberg）。 */
+    /** 用户选择的更新检查平台来源（DataStore 持久化，默认 GitHub）。 */
     private val _origin = MutableStateFlow(DEFAULT_ORIGIN)
     val origin: StateFlow<UpdateOrigin> = _origin.asStateFlow()
 
@@ -143,18 +143,13 @@ class UpdateManager @Inject constructor(
                     return@launch
                 }
                 _state.value = UpdateUiState.Checking(source)
-                var release = fetchLatest(origin)
-                if (release == null && source == UpdateSource.STARTUP) {
-                    // 主渠道失败时静默回退备用渠道：任一端发了新版本都能检测到。
-                    // 手动检查不回退——失败要可见（错误信息带渠道名），便于排查。
-                    release = fetchLatest(UpdateDownloader.otherOrigin(origin))
-                }
+                val release = fetchLatest(origin)
                 if (release == null) {
                     // 网络瞬断/接口失败：不写 lastCheckTime，避免 6h 节流把下次启动检查也静默屏蔽
                     _state.value = when (source) {
                         // 启动检查失败静默，不打扰
                         UpdateSource.STARTUP -> UpdateUiState.Idle
-                        // 手动检查不回退备用渠道，失败信息带渠道名，便于用户自查/反馈
+                        // 手动检查失败要可见，信息带渠道名，便于用户自查/反馈
                         UpdateSource.MANUAL -> UpdateUiState.Failed(
                             context.getString(
                                 R.string.text_update_check_failed_with_origin,
@@ -303,7 +298,6 @@ class UpdateManager @Inject constructor(
 
     /** 平台来源展示名（专有名词，各语言一致）。 */
     private fun originLabel(origin: UpdateOrigin): String = when (origin) {
-        UpdateOrigin.CODEBERG -> "Codeberg"
         UpdateOrigin.GITHUB -> "GitHub"
     }
 
@@ -331,7 +325,7 @@ class UpdateManager @Inject constructor(
         private val KEY_LAST_CHECK = longPreferencesKey("update_last_check_time")
         private val KEY_IGNORED_TAG = stringPreferencesKey("update_ignored_tag")
 
-        /** 更新检查平台来源（[UpdateOrigin.name]，默认 Codeberg）。 */
+        /** 更新检查平台来源（[UpdateOrigin.name]，默认 GitHub）。 */
         private val KEY_ORIGIN = stringPreferencesKey("update_origin")
     }
 }

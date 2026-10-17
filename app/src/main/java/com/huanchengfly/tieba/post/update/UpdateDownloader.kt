@@ -12,11 +12,10 @@ import java.security.DigestOutputStream
 import java.security.MessageDigest
 
 /**
- * 更新检查平台来源（用户可在关于页选择，DataStore 持久化）。
- * 主渠道为 GitHub（qaqmin），Codeberg 为镜像/备用：任一端发了新版本都应能检测到。
+ * 更新检查平台来源（DataStore 持久化）。
+ * 只检查 GitHub（ZaiLinn/TiebaLite）；上游的 Codeberg 渠道已移除，避免检测到上游版本。
  */
 enum class UpdateOrigin {
-    CODEBERG,
     GITHUB
 }
 
@@ -31,24 +30,11 @@ object UpdateDownloader {
 
     private const val TAG = "UpdateDownloader"
 
-    private const val CODEBERG_API_ROOT = "https://codeberg.org/api/v1/repos/min09577/TiebaLite"
+    private const val GITHUB_API_ROOT = "https://api.github.com/repos/ZaiLinn/TiebaLite"
 
-    private const val GITHUB_API_ROOT = "https://api.github.com/repos/qaqmin/TiebaLite"
-
-    /**
-     * 各平台 Releases API 根地址。Gitea/Forgejo 的 release/asset 字段名与 GitHub 一致
-     * （tag_name/name/html_url/body/prerelease/assets[].browser_download_url），
-     * 解析与下载逻辑两端通用，只有根地址不同。
-     */
+    /** 平台来源对应的 Releases API 根地址。 */
     fun rootFor(origin: UpdateOrigin): String = when (origin) {
-        UpdateOrigin.CODEBERG -> CODEBERG_API_ROOT
         UpdateOrigin.GITHUB -> GITHUB_API_ROOT
-    }
-
-    /** 另一平台来源（启动检查主渠道失败时静默回退用）。 */
-    fun otherOrigin(origin: UpdateOrigin): UpdateOrigin = when (origin) {
-        UpdateOrigin.CODEBERG -> UpdateOrigin.GITHUB
-        UpdateOrigin.GITHUB -> UpdateOrigin.CODEBERG
     }
 
     /** debug 构建可覆盖的 API 根地址（本地 mock 用），release 恒为官方地址。 */
@@ -68,7 +54,7 @@ object UpdateDownloader {
      *
      * [cacheDir] 非空时启用 ETag 条件请求：GitHub 匿名 API 限额 60 次/小时/IP，
      * 命中 304 的请求不计入限额（GitHub 官方行为），可显著降低用户撞 403 的概率；
-     * Codeberg (Forgejo) 同样支持 ETag。403/网络失败仍返回 null，由调用方回退备用渠道。
+     * 403/网络失败返回 null，由调用方处理。
      */
     fun fetchStableRelease(root: String = apiRoot, cacheDir: File? = null): GitHubRelease? {
         val json = httpGetConditional("${root.trimEnd('/')}/releases?per_page=10", cacheDir) ?: return null

@@ -547,8 +547,4 @@
     <string name="button_update_install">立即安装</string>
     <string name="button_update_retry">重试</string>
     <string name="text_update_install_error">请在设置中允许本应用安装未知应用后重试</string>
-    <string name="text_update_origin_title">更新渠道</string>
-    <string name="text_update_origin_desc">选择从哪个平台检测新版本；启动检查在主渠道失败时会自动尝试另一渠道</string>
-    <string name="text_update_origin_codeberg">Codeberg（备）</string>
-    <string name="text_update_origin_github">GitHub（主）</string>
 </resources>

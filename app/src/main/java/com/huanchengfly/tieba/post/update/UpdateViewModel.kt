@@ -19,20 +19,20 @@ class UpdateViewModel @Inject constructor(
     val origin = manager.origin
 
     /**
-     * 启动自动检查。默认走用户选择的平台来源（默认 Codeberg），主渠道失败时静默回退
-     * 备用渠道；debug 构建传 [enableMock]=true 时走本地 mock 源（[mockRoot] 可覆盖
+     * 启动自动检查。走 GitHub（ZaiLinn/TiebaLite）检查；
+     * debug 构建传 [enableMock]=true 时走本地 mock 源（[mockRoot] 可覆盖
      * gradle 注入的 MOCK_UPDATE_API_ROOT）。
      */
     fun startupCheck(mockRoot: String? = null, enableMock: Boolean = false) =
         manager.check(UpdateSource.STARTUP, mockRoot, enableMock)
 
     /**
-     * 关于页手动检查（不节流、不受"本次忽略"限制、失败可见；只走所选渠道不回退）。
+     * 关于页手动检查（不节流、不受"本次忽略"限制、失败可见）。
      */
     fun manualCheck() = manager.check(UpdateSource.MANUAL)
 
     /**
-     * 切换更新检查平台来源（Codeberg / GitHub）。
+     * 切换更新检查平台来源（当前只有 GitHub）。
      */
     fun setOrigin(origin: UpdateOrigin) = manager.setOrigin(origin)
 

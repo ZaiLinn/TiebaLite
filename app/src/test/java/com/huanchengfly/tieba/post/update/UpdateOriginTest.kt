@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * 更新渠道（平台来源）与 stable 通道选版：
- * - rootFor/otherOrigin：GitHub 为默认主渠道，Codeberg 为镜像/回退渠道
+ * - rootFor：只有 GitHub（ZaiLinn/TiebaLite）一个渠道
  * - pickLatestStable：列表筛选替代 /releases/latest（Codeberg 的 latest 排除 prerelease，
  *   只有预发布时 404），判据剔除 prerelease 与 ai tag，base 优先取最大
  */
@@ -20,13 +20,9 @@ class UpdateOriginTest {
     // ---- 平台来源映射 ----
 
     @Test
-    fun `rootFor maps codeberg and github to their api roots`() {
+    fun `rootFor maps github to zailinn api root`() {
         assertEquals(
-            "https://codeberg.org/api/v1/repos/min09577/TiebaLite",
-            UpdateDownloader.rootFor(UpdateOrigin.CODEBERG)
-        )
-        assertEquals(
-            "https://api.github.com/repos/qaqmin/TiebaLite",
+            "https://api.github.com/repos/ZaiLinn/TiebaLite",
             UpdateDownloader.rootFor(UpdateOrigin.GITHUB)
         )
     }
@@ -34,12 +30,6 @@ class UpdateOriginTest {
     @Test
     fun `default origin is github`() {
         assertEquals(UpdateOrigin.GITHUB, DEFAULT_ORIGIN)
-    }
-
-    @Test
-    fun `otherOrigin flips both ways`() {
-        assertEquals(UpdateOrigin.GITHUB, UpdateDownloader.otherOrigin(UpdateOrigin.CODEBERG))
-        assertEquals(UpdateOrigin.CODEBERG, UpdateDownloader.otherOrigin(UpdateOrigin.GITHUB))
     }
 
     // ---- stable 通道候选集选版 ----
