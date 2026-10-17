@@ -204,7 +204,7 @@ dependencies {
     implementation(zoomimage.compose.sketch)
 
     implementation(compose.bom)
-    androidTestImplementation(compose.bom)
+    androidTestImplementation(platform(compose.bom))
 
     runtimeOnly(compose.runtime.tracing)
     implementation(compose.animation)
