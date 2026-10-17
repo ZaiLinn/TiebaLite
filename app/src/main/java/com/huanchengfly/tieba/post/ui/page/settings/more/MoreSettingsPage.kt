@@ -8,6 +8,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.OfflineBolt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.huanchengfly.tieba.post.BuildConfig
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.dataStore
@@ -34,13 +36,14 @@ import com.huanchengfly.tieba.post.ui.common.prefs.widgets.TextPref
 import com.huanchengfly.tieba.post.ui.page.settings.LeadingIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.AvatarIcon
 import com.huanchengfly.tieba.post.ui.widgets.compose.BackNavigationIcon
+import com.huanchengfly.tieba.post.ui.widgets.compose.ConfirmDialog
 import com.huanchengfly.tieba.post.ui.widgets.compose.LocalSnackbarHostState
 import com.huanchengfly.tieba.post.ui.widgets.compose.MyScaffold
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
 import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.utils.ImageCacheUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
-import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import kotlin.concurrent.thread
 
@@ -69,6 +72,19 @@ fun MoreSettingsPage(
         val snackbarHostState = LocalSnackbarHostState.current
         val context = LocalContext.current
         var cacheSize by remember { mutableStateOf("0.0B") }
+        var privateMessageEnabled by remember { mutableStateOf(context.appPreferences.enablePrivateMessage) }
+        val privateMessageRiskDialogState = rememberDialogState()
+        ConfirmDialog(
+            dialogState = privateMessageRiskDialogState,
+            onConfirm = {
+                context.appPreferences.enablePrivateMessage = true
+                privateMessageEnabled = true
+            },
+            confirmText = stringResource(id = R.string.button_private_message_enable),
+            title = { Text(text = stringResource(id = R.string.title_private_message_experimental)) },
+        ) {
+            Text(text = stringResource(id = R.string.message_private_message_risk))
+        }
         LaunchedEffect(Unit) {
             thread {
                 cacheSize = ImageCacheUtil.getCacheSize(context)
@@ -138,6 +154,32 @@ fun MoreSettingsPage(
                     summary = {
                         if (it) stringResource(id = R.string.tip_use_custom_tab_on)
                         else stringResource(id = R.string.tip_use_custom_tab)
+                    },
+                )
+            }
+            prefsItem {
+                TextPref(
+                    title = stringResource(id = R.string.title_private_message_experimental),
+                    summary = stringResource(
+                        id = if (privateMessageEnabled) R.string.tip_private_message_on
+                        else R.string.tip_private_message_off
+                    ),
+                    onClick = {
+                        if (privateMessageEnabled) {
+                            context.appPreferences.enablePrivateMessage = false
+                            privateMessageEnabled = false
+                        } else {
+                            privateMessageRiskDialogState.show()
+                        }
+                    },
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.Mail,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
                     },
                 )
             }

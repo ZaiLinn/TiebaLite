@@ -7,17 +7,21 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Tab
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavHostController
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
 import com.huanchengfly.tieba.post.ui.page.ProvideNavigator
+import com.huanchengfly.tieba.post.ui.page.Routes
 import com.huanchengfly.tieba.post.ui.page.main.notifications.list.NotificationsListPage
 import com.huanchengfly.tieba.post.ui.page.main.notifications.list.NotificationsType
 import com.huanchengfly.tieba.post.ui.widgets.compose.ActionItem
@@ -29,7 +33,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.TabRow
 import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
 import com.huanchengfly.tieba.post.ui.widgets.compose.Toolbar
 import com.huanchengfly.tieba.post.ui.widgets.compose.accountNavIconIfCompact
-import androidx.navigation.NavHostController
+import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -63,7 +67,8 @@ fun NotificationsPage(
                         BackNavigationIcon {
                             navigator.popBackStack()
                         }
-                    }
+                    },
+                    actions = { PrivateMessageAction(navigator) },
                 ) {
                     TabRow(
                         selectedTabIndex = pagerState.currentPage,
@@ -135,6 +140,7 @@ fun NotificationsPage(
                 title = stringResource(id = R.string.title_notifications),
                 navigationIcon = accountNavIconIfCompact(),
                 actions = {
+                    PrivateMessageAction(navigator)
                     ActionItem(
                         icon = Icons.Rounded.Search,
                         contentDescription = stringResource(id = R.string.title_search)
@@ -181,5 +187,17 @@ fun NotificationsPage(
         ) {
             pages[it].second()
         }
+    }
+}
+
+/** 开启私信（实验）后在消息页顶栏显示私信入口 */
+@Composable
+private fun PrivateMessageAction(navigator: NavHostController) {
+    if (!LocalContext.current.appPreferences.enablePrivateMessage) return
+    ActionItem(
+        icon = Icons.Rounded.Mail,
+        contentDescription = stringResource(id = R.string.title_private_messages),
+    ) {
+        navigator.navigate(Routes.PRIVATE_MESSAGES)
     }
 }

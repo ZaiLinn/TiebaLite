@@ -81,6 +81,9 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var blockScoreThread by DataStoreDelegates.boolean(defaultValue = false)
 
+    /** 私信（实验功能，默认关闭：长连接为明文，握手时 BDUSS/STOKEN 不加密） */
+    var enablePrivateMessage by DataStoreDelegates.boolean(defaultValue = false)
+
     var commentLevelFilter by DataStoreDelegates.boolean(defaultValue = false)
 
     var commentFilterMinimumLevel by DataStoreDelegates.float(

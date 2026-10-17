@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package tieba.im;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.im";
+
+import "Error.proto";
+
+// cmd 1001：建立连接后上传设备信息与 RSA 加密的 AES 密钥，返回各消息组的最新消息 id
+message UpdateClientInfoReqIdl {
+  message DataReq {
+    string bduss = 1;
+    string device = 2;
+    bytes secretKey = 3;
+    string stoken = 12;
+  }
+  string cuid = 1;
+  DataReq data = 2;
+}
+
+message UpdateClientInfoResIdl {
+  message GroupInfo {
+    int64 groupId = 1;
+    int32 groupType = 20;
+    int64 lastMsgId = 21;
+  }
+  message DataRes {
+    repeated GroupInfo groupInfo = 1;
+  }
+  tieba.Error error = 1;
+  DataRes data = 2;
+}

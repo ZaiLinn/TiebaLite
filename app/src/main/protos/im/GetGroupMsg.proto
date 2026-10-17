@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package tieba.im;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.im";
+
+import "Error.proto";
+import "im/ImCommon.proto";
+
+// cmd 202003：按消息组拉取 lastMsgId 之后的消息
+message GetGroupMsgReqIdl {
+  message GroupLastId {
+    int64 groupId = 1;
+    int64 lastMsgId = 2;
+  }
+  message DataReq {
+    repeated GroupLastId groupMids = 6;
+    string gettype = 7;
+  }
+  string cuid = 1;
+  DataReq data = 2;
+}
+
+message GetGroupMsgResIdl {
+  message GroupInfo {
+    int64 groupId = 1;
+    int32 groupType = 20;
+  }
+  message GroupMsg {
+    GroupInfo groupInfo = 1;
+    repeated ImMsgInfo msgList = 2;
+    int32 hasMore = 3;
+  }
+  message DataRes {
+    repeated GroupMsg groupInfo = 1;
+  }
+  tieba.Error error = 1;
+  DataRes data = 2;
+}

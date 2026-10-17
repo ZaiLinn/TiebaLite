@@ -85,9 +85,11 @@ import com.huanchengfly.tieba.post.components.ClipBoardForumLink
 import com.huanchengfly.tieba.post.components.ClipBoardLink
 import com.huanchengfly.tieba.post.components.ClipBoardLinkDetector
 import com.huanchengfly.tieba.post.components.ClipBoardThreadLink
+import com.huanchengfly.tieba.post.im.ImPeer
 import com.huanchengfly.tieba.post.services.NotifyJobService
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
+import com.huanchengfly.tieba.post.ui.page.MonetTestPage
 import com.huanchengfly.tieba.post.ui.page.Routes
 import com.huanchengfly.tieba.post.ui.page.dialogs.CopyTextDialogPage
 import com.huanchengfly.tieba.post.ui.page.forum.ForumPage
@@ -96,20 +98,18 @@ import com.huanchengfly.tieba.post.ui.page.forum.rule.ForumRuleDetailPage
 import com.huanchengfly.tieba.post.ui.page.forum.searchpost.ForumSearchPostPage
 import com.huanchengfly.tieba.post.ui.page.history.HistoryPage
 import com.huanchengfly.tieba.post.ui.page.hottopic.list.HotTopicListPage
+import com.huanchengfly.tieba.post.ui.page.im.PrivateChatPage
+import com.huanchengfly.tieba.post.ui.page.im.PrivateMessageListPage
 import com.huanchengfly.tieba.post.ui.page.login.LoginPage
 import com.huanchengfly.tieba.post.ui.page.main.MainPage
 import com.huanchengfly.tieba.post.ui.page.main.explore.hot.HotPage
 import com.huanchengfly.tieba.post.ui.page.main.notifications.NotificationsPage
-import com.huanchengfly.tieba.post.ui.page.MonetTestPage
 import com.huanchengfly.tieba.post.ui.page.reply.ReplyPage
 import com.huanchengfly.tieba.post.ui.page.search.SearchPage
 import com.huanchengfly.tieba.post.ui.page.settings.SettingsPage
 import com.huanchengfly.tieba.post.ui.page.settings.about.AboutPage
 import com.huanchengfly.tieba.post.ui.page.settings.about.DraftPage
 import com.huanchengfly.tieba.post.ui.page.settings.about.LogPage
-import com.huanchengfly.tieba.post.update.UpdateDialog
-import com.huanchengfly.tieba.post.update.UpdateSource
-import com.huanchengfly.tieba.post.update.UpdateViewModel
 import com.huanchengfly.tieba.post.ui.page.settings.account.AccountManagePage
 import com.huanchengfly.tieba.post.ui.page.settings.block.BlockSettingsPage
 import com.huanchengfly.tieba.post.ui.page.settings.block.blocklist.BlockListPage
@@ -135,6 +135,9 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.DialogNegativeButton
 import com.huanchengfly.tieba.post.ui.widgets.compose.DialogPositiveButton
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
+import com.huanchengfly.tieba.post.update.UpdateDialog
+import com.huanchengfly.tieba.post.update.UpdateSource
+import com.huanchengfly.tieba.post.update.UpdateViewModel
 import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.ClientUtils
 import com.huanchengfly.tieba.post.utils.JobServiceUtil
@@ -813,6 +816,27 @@ class MainActivityV2 : BaseComposeActivity() {
                             }
 
                             composable(Routes.LOGIN) { LoginPage(navigator = navController) }
+
+                            // === 私信 ===
+                            composable(Routes.PRIVATE_MESSAGES) { PrivateMessageListPage(navigator = navController) }
+                            composable(
+                                route = Routes.PRIVATE_CHAT,
+                                arguments = listOf(
+                                    navArgument(Routes.Args.UID) { type = NavType.LongType },
+                                    navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                                    navArgument("portrait") { type = NavType.StringType; defaultValue = "" },
+                                )
+                            ) { backStackEntry ->
+                                val args = backStackEntry.arguments
+                                PrivateChatPage(
+                                    peer = ImPeer(
+                                        uid = args?.getLong(Routes.Args.UID) ?: 0L,
+                                        name = args?.getString("name").orEmpty(),
+                                        portrait = args?.getString("portrait").orEmpty(),
+                                    ),
+                                    navigator = navController,
+                                )
+                            }
                             composable(Routes.HOT_TOPIC_LIST) { HotTopicListPage(navigator = navController) }
                             composable(Routes.HOT_PAGE) { HotPage(navigator = navController) }
                             composable(Routes.MONET_TEST) { MonetTestPage() }

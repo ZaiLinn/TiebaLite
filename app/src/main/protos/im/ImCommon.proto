@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package tieba.im;
+
+option java_package = "com.huanchengfly.tieba.post.api.models.protos.im";
+
+// 贴吧私信长连接（ws://im.tieba.baidu.com:8000）使用的消息。
+// 字段来自 aiotieba（Unlicense）与官方客户端 12.51.7.1 反编译结果（n0099/open-tbclient）。
+
+message ImUserInfo {
+  int64 userId = 1;
+  string userName = 2;
+  string nickName = 3;
+  string portrait = 4;
+  string userNameShow = 18;
+}
+
+message ImMsgInfo {
+  int64 msgId = 1;
+  int64 groupId = 2;
+  int32 msgType = 3;
+  int64 userId = 4;
+  string content = 5;
+  int32 status = 6;
+  int32 createTime = 8;
+  int64 recordId = 9;
+  ImUserInfo userInfo = 10;
+  int64 toUid = 11;
+  ImUserInfo toUserInfo = 12;
+}

@@ -30,6 +30,7 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedButton
 import androidx.compose.material.ProvideTextStyle
 import androidx.compose.material.Tab
 import androidx.compose.material.Text
@@ -67,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEachIndexed
+import androidx.navigation.NavHostController
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.api.models.protos.User
 import com.huanchengfly.tieba.post.arch.BaseComposeActivity.Companion.LocalWindowSizeClass
@@ -77,11 +79,14 @@ import com.huanchengfly.tieba.post.arch.emitGlobalEvent
 import com.huanchengfly.tieba.post.arch.getOrNull
 import com.huanchengfly.tieba.post.arch.pageViewModel
 import com.huanchengfly.tieba.post.goToActivity
+import com.huanchengfly.tieba.post.im.ImPeer
 import com.huanchengfly.tieba.post.models.database.Block
 import com.huanchengfly.tieba.post.toastShort
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.windowsizeclass.WindowWidthSizeClass
+import com.huanchengfly.tieba.post.ui.page.LocalNavigator
 import com.huanchengfly.tieba.post.ui.page.ProvideNavigator
+import com.huanchengfly.tieba.post.ui.page.im.privateChatRoute
 import com.huanchengfly.tieba.post.ui.page.user.edit.EditProfileActivity
 import com.huanchengfly.tieba.post.ui.page.user.likeforum.UserLikeForumPage
 import com.huanchengfly.tieba.post.ui.page.user.post.UserPostPage
@@ -107,7 +112,7 @@ import com.huanchengfly.tieba.post.utils.BlockManager
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.StringUtil.getShortNumString
 import com.huanchengfly.tieba.post.utils.TiebaUtil
-import androidx.navigation.NavHostController
+import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
@@ -794,6 +799,24 @@ private fun UserProfileDetail(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             Spacer(modifier = Modifier.weight(1f))
+            if (showBtn && !isSelf && LocalContext.current.appPreferences.enablePrivateMessage) {
+                val navigator = LocalNavigator.current
+                OutlinedButton(
+                    onClick = {
+                        navigator.navigate(
+                            privateChatRoute(
+                                ImPeer(
+                                    uid = user.get { id },
+                                    name = user.get { nameShow }.ifEmpty { user.get { name } },
+                                    portrait = user.get { portrait },
+                                )
+                            )
+                        )
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.button_private_message))
+                }
+            }
             if (showBtn) {
                 Button(
                     onClick = onBtnClick,

@@ -463,6 +463,22 @@
     <string name="settings_comment_filter_keep_with_replies_summary">低等级用户的楼层下面有回复时仍然显示</string>
     <string name="settings_comment_filter_skip_nested">不过滤楼中楼</string>
     <string name="settings_comment_filter_skip_nested_summary">只过滤楼层，楼中楼预览里的回复全部显示</string>
+    <string name="title_private_message_experimental">私信（实验）</string>
+    <string name="tip_private_message_off">已关闭。开启后可在消息页和用户主页收发私信</string>
+    <string name="tip_private_message_on">已开启，点击关闭</string>
+    <string name="button_private_message_enable">我了解风险，开启</string>
+    <string name="message_private_message_risk">私信使用贴吧的长连接服务器，它只支持未加密的连接：建立连接时你的登录凭证（BDUSS、STOKEN）会以明文发送。在公共 Wi-Fi 等不可信网络中，这些凭证可能被他人截获并用来登录你的账号。
+
+本功能基于非官方协议，可能随时失效，发送私信也可能触发贴吧风控。只在打开私信页面期间保持连接，不发送已读回执。</string>
+    <string name="title_private_messages">私信</string>
+    <string name="button_private_message">私信</string>
+    <string name="hint_private_message_input">发私信…</string>
+    <string name="button_send">发送</string>
+    <string name="tip_private_message_unsupported">[暂不支持显示此类消息]</string>
+    <string name="tip_private_message_empty">还没有私信</string>
+    <string name="tip_private_message_chat_empty">还没有和 TA 的私信</string>
+    <string name="toast_private_message_send_failed">发送失败：%1$s</string>
+    <string name="tip_private_message_connect_failed">连接失败：%1$s</string>
     <string name="desc_image">图片</string>
     <string name="desc_add_image">添加图片</string>
     <string name="toast_upload_image_failed">上传图片失败 %s</string>
