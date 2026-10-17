@@ -1140,7 +1140,9 @@ sealed interface ThreadPartialChange : PartialChange<ThreadUiState> {
         override fun reduce(oldState: ThreadUiState): ThreadUiState = when (this) {
             is Success -> {
                 val deletedPostIndex = oldState.data.indexOfFirst { it.post.get { id } == postId }
-                oldState.copy(
+                // 列表已刷新、该楼层不在当前数据里时 indexOfFirst 为 -1，removeAt(-1) 会崩溃
+                if (deletedPostIndex < 0) oldState
+                else oldState.copy(
                     data = oldState.data.removeAt(deletedPostIndex),
                 )
             }
