@@ -122,6 +122,7 @@ CI 从仓库 Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`
 
 - 原作者 **[HuanCheng65](https://github.com/HuanCheng65)**：原创开发并维护本项目至 2024 年归档，所有原始代码与架构设计归原作者所有。
 - **qaqmin**：v4.0.0 至 v4.0.60 的修改版本。
+- **[ForbidAd4TieBa](https://github.com/aikavvak12una/ForbidAd4TieBa)**:部分功能参考
 - 详见 [CREDITS.md](CREDITS.md)。
 
 ## 🔗 相关项目
