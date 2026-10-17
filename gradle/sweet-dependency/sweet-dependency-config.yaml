@@ -29,6 +29,14 @@ repositories:
   jit-pack:
   maven-verve:
     url: https://verve.jfrog.io/artifactory/verve-gradle-release/
+  # 镜像未命中时回落官方源
+  official-gradle-plugin-portal:
+    scope: PLUGINS
+    url: https://plugins.gradle.org/m2/
+  official-google:
+    url: https://dl.google.com/dl/android/maven2/
+  official-maven-central:
+    url: https://repo.maven.apache.org/maven2/
 
 versions:
   accompanist: 0.36.0
