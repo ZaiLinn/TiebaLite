@@ -1,0 +1,12 @@
+# 应用自身代码的基线配置文件（Baseline Profile）。
+#
+# 包里原来只有 Compose 等库自带的规则，应用自己的代码在安装后由解释器（Nterp）执行，
+# 要等系统空闲时的后台优化才会编译。真机采样（simpleperf）显示帖子页滑动时主线程大量时间
+# 花在 NterpGetMethod / FindClassMethod 等解释器路径上。
+#
+# 这里用通配符把应用包下的全部类和方法列入，安装时（Android 7+ 通过 profileinstaller，
+# Android 14+ 由 ART 直接读取 APK 内嵌的配置）提前编译成机器码。
+# AGP 会结合 R8 的 mapping 把这些规则改写成混淆后的名字。
+
+Lcom/huanchengfly/tieba/post/**;
+HSPLcom/huanchengfly/tieba/post/**->**(**)**
