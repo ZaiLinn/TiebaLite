@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.os.Environment
 import android.os.StatFs
 import java.io.File
@@ -90,7 +91,7 @@ object DeviceUtils {
         return try {
             File(filePath).bufferedReader().use { it.readLine() }
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("DeviceUtils", e)
             ""
         }
     }

@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.content.Context
 import android.os.Looper
 import android.text.TextUtils
@@ -38,7 +39,7 @@ object ImageCacheUtil {
                     .clear()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("ImageCacheUtil", e)
         }
     }
 
@@ -53,7 +54,7 @@ object ImageCacheUtil {
                     .clear()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("ImageCacheUtil", e)
         }
     }
 
@@ -86,7 +87,7 @@ object ImageCacheUtil {
             val sketchCacheSize = context.sketch.run { downloadCache.size + resultCache.size }
             return getFormatSize(glideCacheSize + shareCacheSize + sketchCacheSize)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("ImageCacheUtil", e)
         }
         return ""
     }
@@ -109,7 +110,7 @@ object ImageCacheUtil {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("ImageCacheUtil", e)
         }
         return size
     }
@@ -139,7 +140,7 @@ object ImageCacheUtil {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w("ImageCacheUtil", e)
             }
         }
     }

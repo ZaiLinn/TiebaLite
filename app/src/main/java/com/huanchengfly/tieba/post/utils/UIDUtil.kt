@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.annotation.SuppressLint
 import android.os.Build
 import android.provider.Settings
@@ -47,7 +48,7 @@ object UIDUtil {
             val digest = MessageDigest.getInstance("SHA1")
             sha1 = digest.digest(str.toByteArray(StandardCharsets.UTF_8))
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("UIDUtil", e)
         }
         return sha1
     }

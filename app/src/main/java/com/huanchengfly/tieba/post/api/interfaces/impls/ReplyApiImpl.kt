@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.api.interfaces.impls
 
+import android.util.Log
 import android.os.Build
 import com.huanchengfly.tieba.post.App
 import com.huanchengfly.tieba.post.api.ClientVersion
@@ -40,7 +41,7 @@ object ReplyApiImpl : IReplyApi {
                         ImageUtil.imageToBase64(FileInputStream(afd.parcelFileDescriptor.fileDescriptor))
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
+                Log.w("ReplyApiImpl", e)
                 base64 = null
             }
         }

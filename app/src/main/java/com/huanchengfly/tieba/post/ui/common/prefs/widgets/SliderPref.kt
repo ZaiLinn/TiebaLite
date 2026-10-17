@@ -80,7 +80,7 @@ fun SliderPref(
                 }
                 onValueChangeFinished?.invoke(value)
             } catch (e: Exception) {
-                Log.e("SliderPref", "Could not write pref $key to database. ${e.printStackTrace()}")
+                Log.e("SliderPref", "Could not write pref $key to database. ${Log.w("SliderPref", e)}")
             }
         }
     }

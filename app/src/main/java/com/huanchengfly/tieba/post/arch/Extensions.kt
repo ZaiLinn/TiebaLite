@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.arch
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -47,6 +48,8 @@ fun <T> Flow<T>.collectIn(
 }
 
 @Composable
+// value 在 collect {} 里赋值，lint 看不到嵌套 lambda 里的赋值
+@SuppressLint("ProduceStateDoesNotAssignValue")
 inline fun <reified T : UiState, A> Flow<T>.collectPartialAsState(
     prop1: KProperty1<T, A>,
     initial: A,

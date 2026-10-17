@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils;
 
+import android.util.Log;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -26,7 +27,7 @@ public class StatusBarUtil {
             Method extraFlagField = clazz.getMethod("setExtraFlags", int.class, int.class);
             extraFlagField.invoke(activity.getWindow(), darkIcon ? darkModeFlag : 0, darkModeFlag);
         } catch (Exception e) {
-            //e.printStackTrace();
+            //Log.w("StatusBarUtil", e);
         }
     }
 
@@ -50,7 +51,7 @@ public class StatusBarUtil {
             meizuFlags.setInt(lp, value);
             activity.getWindow().setAttributes(lp);
         } catch (Exception e) {
-            //e.printStackTrace();
+            //Log.w("StatusBarUtil", e);
         }
     }
 

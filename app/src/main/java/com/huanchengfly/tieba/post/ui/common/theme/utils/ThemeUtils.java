@@ -1,5 +1,7 @@
 package com.huanchengfly.tieba.post.ui.common.theme.utils;
 
+import android.os.Build;
+import android.util.Log;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -97,7 +99,7 @@ public class ThemeUtils {
         }
     }
 
-    @SuppressLint("PrivateApi")
+    @SuppressLint({"PrivateApi", "SoonBlockedPrivateApi", "DiscouragedPrivateApi"})
     private static void refreshView(View view, ExtraRefreshable extraRefreshable) {
         if (view == null) return;
         view.destroyDrawingCache();
@@ -112,7 +114,8 @@ public class ThemeUtils {
             if (extraRefreshable != null) {
                 extraRefreshable.refreshSpecificView(view);
             }
-            if (view instanceof AbsListView) {
+            // AbsListView.mRecycler 是隐藏 API，target 36 后在 Android 16+ 上反射会被拦截
+            if (view instanceof AbsListView && Build.VERSION.SDK_INT < 36) {
                 try {
                     if (sRecyclerBin == null) {
                         sRecyclerBin = AbsListView.class.getDeclaredField("mRecycler");
@@ -125,15 +128,15 @@ public class ThemeUtils {
                     }
                     sListViewClearMethod.invoke(sRecyclerBin.get(view));
                 } catch (NoSuchFieldException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (InvocationTargetException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 }
                 ListAdapter adapter = ((AbsListView) view).getAdapter();
                 while (adapter instanceof WrapperListAdapter) {
@@ -152,15 +155,15 @@ public class ThemeUtils {
                     sRecycleViewClearMethod.setAccessible(true);
                     sRecycleViewClearMethod.invoke(sRecycler.get(view));
                 } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (NoSuchFieldException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (InvocationTargetException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                    Log.w("ThemeUtils", e);
                 }
                 RecyclerView recyclerView = (RecyclerView) view;
                 recyclerView.getRecycledViewPool().clear();

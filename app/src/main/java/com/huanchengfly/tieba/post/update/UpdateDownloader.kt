@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.update
 
+import android.os.Build
 import android.util.Log
 import com.huanchengfly.tieba.post.BuildConfig
 import org.json.JSONObject
@@ -91,7 +92,9 @@ object UpdateDownloader {
             if (code !in 200..299) {
                 return DownloadResult.Error("下载失败（HTTP $code）")
             }
-            val total = conn.contentLengthLong
+            // contentLengthLong 需要 API 24，minSdk 是 21
+            val total = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) conn.contentLengthLong
+            else conn.getHeaderField("Content-Length")?.toLongOrNull() ?: -1L
             val digest = MessageDigest.getInstance("SHA-256")
             var downloaded = 0L
             DigestOutputStream(FileOutputStream(target), digest).use { out ->

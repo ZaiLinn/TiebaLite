@@ -49,7 +49,7 @@ public class PopupUtil {
                 );
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            Log.w("PopupUtil", e);
         }
     }
 
@@ -83,7 +83,7 @@ public class PopupUtil {
                 );
             }
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
+            Log.w("PopupUtil", e);
         }
     }
 

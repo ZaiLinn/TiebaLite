@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.models;
 
+import android.util.Log;
 import android.content.Context;
 import android.net.Uri;
 
@@ -29,7 +30,7 @@ public class PhotoInfoBean {
         try {
             this.file = new File(FileUtil.getRealPathFromUri(context, fileUri));
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w("PhotoInfoBean", e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils;
 
+import android.util.Log;
 import static com.huanchengfly.tieba.post.ExtensionsKt.pendingIntentFlagMutable;
 
 import android.annotation.SuppressLint;
@@ -35,7 +36,7 @@ public class CrashUtil {
                     .getPackageManager().getPackageInfo(context.getPackageName(), 0);
             return packageInfo;
         } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            Log.w("CrashUtil", e);
             return null;
         }
     }
@@ -181,7 +182,7 @@ public class CrashUtil {
                 return;
             }
             crashing = true;
-            e.printStackTrace();
+            Log.w("CrashUtil", e);
             if (!handleException(e) && mDefaultHandler != null) {
                 mDefaultHandler.uncaughtException(t, e);
             }

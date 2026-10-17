@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.components;
 
+import android.util.Log;
 import android.content.Context;
 import android.util.AttributeSet;
 
@@ -39,7 +40,7 @@ public class MyLinearLayoutManager extends LinearLayoutManager {
         try {
             super.onLayoutChildren(recycler, state);
         } catch (IndexOutOfBoundsException e) {
-            e.printStackTrace();
+            Log.w("MyLinearLayoutManager", e);
         }
     }
 

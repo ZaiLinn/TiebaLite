@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
@@ -83,7 +84,7 @@ object ImageUtil {
         try {
             return FileInputStream(file).use { isGifFile(it) }
         } catch (e: FileNotFoundException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return false
     }
@@ -97,7 +98,7 @@ object ImageUtil {
             val str = String(bytes)
             return str.equals("GIF8", ignoreCase = true)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return false
     }
@@ -133,10 +134,10 @@ object ImageUtil {
                 fos.flush()
                 fos.close()
             } catch (e: IOException) {
-                e.printStackTrace()
+                Log.w("ImageUtil", e)
             }
         } catch (e: FileNotFoundException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return output
     }
@@ -156,10 +157,10 @@ object ImageUtil {
                 fos.flush()
                 fos.close()
             } catch (e: IOException) {
-                e.printStackTrace()
+                Log.w("ImageUtil", e)
             }
         } catch (e: FileNotFoundException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return output
     }
@@ -186,14 +187,14 @@ object ImageUtil {
             dstChannel = dest.channel
             srcChannel.transferTo(0, srcChannel.size(), dstChannel)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
             return false
         }
         try {
             srcChannel.close()
             dstChannel.close()
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return true
     }
@@ -208,7 +209,7 @@ object ImageUtil {
         try {
             dest.createNewFile()
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         val srcChannel: FileChannel?
         val dstChannel: FileChannel?
@@ -217,14 +218,14 @@ object ImageUtil {
             dstChannel = FileOutputStream(dest).channel
             srcChannel.transferTo(0, srcChannel.size(), dstChannel)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
             return false
         }
         try {
             srcChannel.close()
             dstChannel.close()
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return true
     }
@@ -359,7 +360,7 @@ object ImageUtil {
                             ).show()
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.w("ImageUtil", e)
                         cr.delete(uri, null, null)
                     }
                 }
@@ -591,7 +592,7 @@ object ImageUtil {
             val `is`: InputStream = FileInputStream(file)
             result = imageToBase64(`is`)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("ImageUtil", e)
         }
         return result
     }

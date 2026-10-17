@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.content.Context
 import android.net.Uri
 import androidx.annotation.DrawableRes
@@ -135,7 +136,7 @@ object QuickPreviewUtil {
                     icon = Icon(StringUtil.getAvatarUrl(it.data_?.thread?.author?.portrait))
                 )
             }
-            .catch { it.printStackTrace() }
+            .catch { Log.w("QuickPreviewUtil", it) }
             .apply {
                 if (lifeCycle != null) {
                     flowWithLifecycle(lifeCycle)
@@ -189,7 +190,7 @@ object QuickPreviewUtil {
                     icon = Icon(it.data_?.forum?.avatar)
                 )
             }
-            .catch { it.printStackTrace() }
+            .catch { Log.w("QuickPreviewUtil", it) }
             .apply {
                 if (lifeCycle != null) {
                     flowWithLifecycle(lifeCycle)

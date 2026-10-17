@@ -47,7 +47,7 @@ fun SwitchPref(
                     preferences[selectionKey] = newState
                 }
             } catch (e: Exception) {
-                Log.e("SwitchPref", "Could not write pref $key to database. ${e.printStackTrace()}")
+                Log.e("SwitchPref", "Could not write pref $key to database. ${Log.w("SwitchPref", e)}")
             }
         }
     }
@@ -120,7 +120,7 @@ fun SwitchPref(
                     preferences[selectionKey] = newState
                 }
             } catch (e: Exception) {
-                Log.e("SwitchPref", "Could not write pref $key to database. ${e.printStackTrace()}")
+                Log.e("SwitchPref", "Could not write pref $key to database. ${Log.w("SwitchPref", e)}")
             }
         }
     }

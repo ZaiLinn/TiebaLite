@@ -304,7 +304,7 @@ class MainActivityV2 : BaseComposeActivity() {
                     .flowOn(Dispatchers.IO)
                     .catch { e ->
                         toastShort(e.getErrorMessage())
-                        e.printStackTrace()
+                        Log.w("MainActivityV2", e)
                     }
                     .collect()
             }

@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.page.user.edit
 
+import android.util.Log
 import android.app.Activity
 import android.graphics.Bitmap
 import android.net.Uri
@@ -108,7 +109,7 @@ class EditProfileActivity : BaseActivity() {
                 viewModel.send(EditProfileIntent.UploadPortrait(File(cacheDir, "cropped_portrait")))
             } else if (it.resultCode == UCrop.RESULT_ERROR) {
                 val cropError = UCrop.getError(it.data!!)
-                cropError!!.printStackTrace()
+                Log.w("EditProfileActivity", cropError)
             }
         }
 
@@ -125,7 +126,7 @@ class EditProfileActivity : BaseActivity() {
                                     file.outputStream().use { output -> input.copyTo(output) }
                                 }
                             }
-                        }.onFailure { it.printStackTrace() }.getOrNull()
+                        }.onFailure { Log.w("EditProfileActivity", it) }.getOrNull()
                     } ?: return@launch
                     val sourceFileUri = Uri.fromFile(source)
                     val destUri = Uri.fromFile(File(cacheDir, "cropped_portrait"))

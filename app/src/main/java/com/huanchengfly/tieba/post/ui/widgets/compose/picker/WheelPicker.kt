@@ -13,6 +13,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,8 @@ fun <T> WheelPicker(
             LazyListState()
         }
     }
+    // 只在选中项变化时重组，不要在组合阶段直接读 firstVisibleItemIndex（滚动时每帧变化）
+    val firstVisibleIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
 
     if (listState.isScrollInProgress.not() && itemHeightInPixels > 0) {
         val needScrollTop = -listState.firstVisibleItemScrollOffset + itemHeightInPixels / 2
@@ -103,7 +106,7 @@ fun <T> WheelPicker(
                     ) {
                         Text(
                             text = itemToString(items[index]),
-                            style = if (i == listState.firstVisibleItemIndex) itemStyles.selectedTextStyle else itemStyles.defaultTextStyle
+                            style = if (i == firstVisibleIndex) itemStyles.selectedTextStyle else itemStyles.defaultTextStyle
                         )
                     }
                 }

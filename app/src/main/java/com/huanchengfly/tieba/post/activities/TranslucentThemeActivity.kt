@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.activities
 
+import android.util.Log
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
@@ -160,7 +161,7 @@ class TranslucentThemeActivity : BaseActivity(), View.OnClickListener, OnSeekBar
             refreshBackground()
         } else if (resultCode == UCrop.RESULT_ERROR) {
             val cropError = UCrop.getError(data!!)
-            cropError!!.printStackTrace()
+            Log.w("TranslucentTheme", cropError)
         }
     }
 

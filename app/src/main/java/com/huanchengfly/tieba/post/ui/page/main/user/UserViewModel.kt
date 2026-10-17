@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.page.main.user
 
+import android.util.Log
 import androidx.compose.runtime.Stable
 import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.protos.profile.ProfileResponse
@@ -89,7 +90,7 @@ class UserViewModel @Inject constructor() : BaseViewModel<UserUiIntent, UserPart
                         }
                     }
                     .catch {
-                        it.printStackTrace()
+                        Log.w("UserViewModel", it)
                         emit(UserPartialChange.Refresh.Failure(errorMessage = it.getErrorMessage()))
                     }
             }

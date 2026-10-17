@@ -103,7 +103,7 @@ fun EditTextPref(
             } catch (e: Exception) {
                 Log.e(
                     "EditTextPref",
-                    "Could not write pref $key to database. ${e.printStackTrace()}"
+                    "Could not write pref $key to database. ${Log.w("EditTextPref", e)}"
                 )
             }
         }

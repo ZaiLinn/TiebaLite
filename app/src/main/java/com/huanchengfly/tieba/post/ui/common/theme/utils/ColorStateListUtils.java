@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.common.theme.utils;
 
+import android.util.Log;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -53,9 +54,9 @@ public class ColorStateListUtils {
                     rp.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.w("ColorStateListUtils", e);
             } catch (XmlPullParserException e) {
-                e.printStackTrace();
+                Log.w("ColorStateListUtils", e);
             }
         }
         return cl;

@@ -67,7 +67,7 @@ fun DropDownPref(
                 expanded = false
                 onValueChange?.invoke(item.key)
             } catch (e: Exception) {
-                Log.e("DropDownPref", "Could not write pref $key to database. ${e.printStackTrace()}")
+                Log.e("DropDownPref", "Could not write pref $key to database. ${Log.w("DropDownPref", e)}")
             }
         }
     }

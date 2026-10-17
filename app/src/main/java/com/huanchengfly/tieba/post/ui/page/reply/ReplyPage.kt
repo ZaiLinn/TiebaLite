@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.page.reply
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -26,10 +27,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
@@ -83,6 +84,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.widget.addTextChangedListener
+import androidx.navigation.NavHostController
 import com.github.panpf.sketch.compose.AsyncImage
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.huanchengfly.tieba.post.R
@@ -94,7 +96,6 @@ import com.huanchengfly.tieba.post.arch.onEvent
 import com.huanchengfly.tieba.post.arch.onGlobalEvent
 import com.huanchengfly.tieba.post.arch.pageViewModel
 import com.huanchengfly.tieba.post.models.database.Draft
-import com.huanchengfly.tieba.post.utils.AppLog
 import com.huanchengfly.tieba.post.pxToDpFloat
 import com.huanchengfly.tieba.post.toMD5
 import com.huanchengfly.tieba.post.toastShort
@@ -113,6 +114,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.VerticalDivider
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.ui.widgets.edittext.widget.UndoableEditText
 import com.huanchengfly.tieba.post.utils.AccountUtil
+import com.huanchengfly.tieba.post.utils.AppLog
 import com.huanchengfly.tieba.post.utils.Emoticon
 import com.huanchengfly.tieba.post.utils.EmoticonManager
 import com.huanchengfly.tieba.post.utils.PickMediasRequest
@@ -120,7 +122,6 @@ import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import com.huanchengfly.tieba.post.utils.hideKeyboard
 import com.huanchengfly.tieba.post.utils.showKeyboard
-import androidx.navigation.NavHostController
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.FlowPreview
@@ -406,11 +407,15 @@ internal fun ReplyPageContent(
     val imeInset = WindowInsets.ime
     val imeAnimationTargetInset = WindowInsets.imeAnimationTarget
 
+    // value 在 collect {} 里赋值，lint 看不到嵌套 lambda 里的赋值
+    @SuppressLint("ProduceStateDoesNotAssignValue")
     val imeCurrentHeight by produceState(initialValue = 0, imeInset, density) {
         snapshotFlow { imeInset.getBottom(density) }
             .distinctUntilChanged()
             .collect { value = it }
     }
+    // value 在 collect {} 里赋值，lint 看不到嵌套 lambda 里的赋值
+    @SuppressLint("ProduceStateDoesNotAssignValue")
     val imeAnimationTargetHeight by produceState(
         initialValue = 0,
         imeAnimationTargetInset,
@@ -421,6 +426,8 @@ internal fun ReplyPageContent(
             .collect { value = it }
     }
     val imeAnimationEnd by remember { derivedStateOf { imeCurrentHeight == imeAnimationTargetHeight } }
+    // value 在 collect {} 里赋值，lint 看不到嵌套 lambda 里的赋值
+    @SuppressLint("ProduceStateDoesNotAssignValue")
     val imeVisibleHeightPx by produceState(
         initialValue = remember { context.appPreferences.imeHeight },
         imeAnimationTargetInset,

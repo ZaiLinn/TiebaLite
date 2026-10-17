@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.app.DownloadManager
 import android.content.ContentResolver
 import android.content.ContentUris
@@ -229,7 +230,7 @@ object FileUtil {
             `is`.read(buffer)
             return String(buffer, StandardCharsets.UTF_8)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("FileUtil", e)
         }
         return null
     }
@@ -246,7 +247,7 @@ object FileUtil {
             fos.close()
             return true
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("FileUtil", e)
         }
         return false
     }
@@ -267,7 +268,7 @@ object FileUtil {
             inputStream.close()
             return true
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("FileUtil", e)
         }
         return false
     }

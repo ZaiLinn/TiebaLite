@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils;
 
+import android.util.Log;
 import android.content.Context;
 import android.util.Base64;
 
@@ -23,7 +24,7 @@ public final class CacheUtil {
             try {
                 return GsonUtil.getGson().fromJson(base64Decode(FileUtil.readFile(cacheFile)), tClass);
             } catch (JsonSyntaxException e) {
-                e.printStackTrace();
+                Log.w("CacheUtil", e);
             }
         }
         return null;
@@ -37,11 +38,11 @@ public final class CacheUtil {
                 try {
                     FileUtil.writeFile(cacheFile, base64Encode(GsonUtil.getGson().toJson(object)), false);
                 } catch (JsonSyntaxException e) {
-                    e.printStackTrace();
+                    Log.w("CacheUtil", e);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w("CacheUtil", e);
         }
     }
 

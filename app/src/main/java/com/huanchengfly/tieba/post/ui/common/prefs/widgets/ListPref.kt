@@ -75,7 +75,7 @@ fun ListPref(
                     preferences[selectionKey] = current.first
                 }
             } catch (e: Exception) {
-                Log.e("ListPref", "Could not write pref $key to database. ${e.printStackTrace()}")
+                Log.e("ListPref", "Could not write pref $key to database. ${Log.w("ListPref", e)}")
             }
         }
     }

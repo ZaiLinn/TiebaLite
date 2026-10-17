@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.page.photoview
 
+import android.util.Log
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -359,7 +360,7 @@ class PhotoViewActivity : BaseComposeActivityWithParcelable<PhotoViewData>() {
         return try {
             super.dispatchTouchEvent(ev)
         } catch (e: RuntimeException) {
-            e.printStackTrace()
+            Log.w("PhotoViewActivity", e)
             true
         }
     }

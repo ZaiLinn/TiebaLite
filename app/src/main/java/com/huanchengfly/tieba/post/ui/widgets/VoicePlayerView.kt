@@ -192,7 +192,7 @@ class VoicePlayerView @JvmOverloads constructor(
             try {
                 player!!.reset()
             } catch (e: IllegalStateException) {
-                e.printStackTrace()
+                Log.w("VoicePlayerView", e)
                 player = null
                 initMediaPlayer()
             }
@@ -248,7 +248,7 @@ class VoicePlayerView @JvmOverloads constructor(
         try {
             player!!.reset()
         } catch (e: IllegalStateException) {
-            e.printStackTrace()
+            Log.w("VoicePlayerView", e)
             player = null
             initMediaPlayer()
         }
@@ -261,7 +261,7 @@ class VoicePlayerView @JvmOverloads constructor(
             player!!.prepare()
             setState(STATE_LOADING)
         } catch (e: IOException) {
-            e.printStackTrace()
+            Log.w("VoicePlayerView", e)
             Log.e(TAG, "set dataSource error", e)
         } catch (e: IllegalStateException) {
             Log.e(TAG, "set dataSource error", e)

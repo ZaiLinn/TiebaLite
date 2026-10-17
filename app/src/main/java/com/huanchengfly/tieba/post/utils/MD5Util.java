@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils;
 
+import android.util.Log;
 import androidx.annotation.NonNull;
 
 import java.io.File;
@@ -51,7 +52,7 @@ public class MD5Util {
         try {
             return p(bytes);
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            Log.w("MD5Util", e);
         }
         return null;
     }
@@ -73,7 +74,7 @@ public class MD5Util {
             }
             in.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.w("MD5Util", e);
             return "";
         }
         return toHexString(digest.digest());

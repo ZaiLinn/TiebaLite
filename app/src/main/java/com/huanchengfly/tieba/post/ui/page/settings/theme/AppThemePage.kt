@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.ui.page.settings.theme
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.navigation.NavHostController
 import com.github.panpf.sketch.compose.AsyncImage
 import com.github.panpf.sketch.fetch.newFileUri
 import com.github.panpf.sketch.fetch.newResourceUri
@@ -87,7 +89,6 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import com.huanchengfly.tieba.post.utils.extension.toHexString
-import androidx.navigation.NavHostController
 @Composable
 fun AppThemePage(
     navigator: NavHostController,
@@ -173,6 +174,8 @@ fun AppThemePage(
             ) { input ->
                 if (input) {
                     var inputHexColor by remember { mutableStateOf(customPrimaryColor.toHexString()) }
+                    // 输入不是合法颜色时保持上一个值，只在合法时赋值
+                    @SuppressLint("ProduceStateDoesNotAssignValue")
                     val lastValidColor by produceState(
                         initialValue = customPrimaryColor,
                         inputHexColor

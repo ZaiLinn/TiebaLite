@@ -137,7 +137,7 @@ class ReplyViewModel @Inject constructor() :
                         return@catch
                     }
                     Log.i("ReplyViewModel", "failure: ${it.message}")
-                    it.printStackTrace()
+                    Log.w("ReplyViewModel", it)
                     emit(ReplyPartialChange.Send.Failure(it.getErrorCode(), it.getErrorMessage()))
                 }
         }
@@ -158,7 +158,7 @@ class ReplyViewModel @Inject constructor() :
                 }
                 .onStart { emit(ReplyPartialChange.UploadImages.Start) }
                 .catch {
-                    it.printStackTrace()
+                    Log.w("ReplyViewModel", it)
                     emit(
                         ReplyPartialChange.UploadImages.Failure(
                             it.getErrorCode(),

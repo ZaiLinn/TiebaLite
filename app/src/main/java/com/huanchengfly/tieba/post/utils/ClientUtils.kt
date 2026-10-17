@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -80,7 +81,7 @@ object ClientUtils {
     private suspend fun sync(context: Context) {
         TiebaApi.getInstance()
             .syncFlow(clientId)
-            .catch { it.printStackTrace() }
+            .catch { Log.w("ClientUtils", it) }
             .collect {
                 clientId = it.client.clientId
                 sampleId = it.wlConfig.sampleId

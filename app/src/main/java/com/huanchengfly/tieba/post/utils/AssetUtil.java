@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils;
 
+import android.util.Log;
 import android.content.Context;
 import android.webkit.WebResourceResponse;
 
@@ -21,7 +22,7 @@ public class AssetUtil {
         try {
             is = context.getAssets().open(filename);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w("AssetUtil", e);
             return null;
         }
         return new WebResourceResponse(mimeType, "utf-8", is);
@@ -42,7 +43,7 @@ public class AssetUtil {
             is.read(buffer);
             return new String(buffer, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.w("AssetUtil", e);
         }
         return "";
     }

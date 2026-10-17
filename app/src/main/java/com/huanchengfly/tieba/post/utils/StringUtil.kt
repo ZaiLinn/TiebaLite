@@ -1,5 +1,6 @@
 package com.huanchengfly.tieba.post.utils
 
+import android.util.Log
 import android.content.Context
 import android.text.Spannable
 import android.text.SpannableString
@@ -63,7 +64,7 @@ object StringUtil {
             }
             spannableString
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w("StringUtil", e)
             val spannableString: SpannableString = if (source is SpannableString) {
                 source
             } else {
