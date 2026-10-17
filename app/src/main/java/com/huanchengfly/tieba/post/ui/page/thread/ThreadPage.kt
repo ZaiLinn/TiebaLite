@@ -21,14 +21,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
@@ -52,6 +51,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -82,6 +83,7 @@ import com.huanchengfly.tieba.post.models.ThreadHistoryInfoBean
 import com.huanchengfly.tieba.post.models.database.History
 import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.ui.common.PbContentRender
+import com.huanchengfly.tieba.post.ui.common.PicContentRender
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.theme.compose.loadMoreIndicator
 import com.huanchengfly.tieba.post.ui.common.theme.compose.pullRefreshIndicator
@@ -104,7 +106,6 @@ import com.huanchengfly.tieba.post.utils.HistoryUtil
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
-import androidx.navigation.NavHostController
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
@@ -694,7 +695,9 @@ fun ThreadPage(
             }
             items(
                 items = latestPosts,
-                key = { (item) -> "LatestPost_${item.get { id }}" }
+                key = { (item) -> "LatestPost_${item.get { id }}" },
+                // 带图和纯文字楼层结构差别大，分开复用
+                contentType = { (_, _, renders) -> if (renders.any { it is PicContentRender }) "PostWithPic" else "Post" },
             ) { (item, blocked, renders, subPosts) ->
                 Container {
                     PostCard(
@@ -1187,7 +1190,9 @@ fun ThreadPage(
                                 } else {
                                     items(
                                         items = data,
-                                        key = { (item) -> "Post_${item.get { id }}" }
+                                        key = { (item) -> "Post_${item.get { id }}" },
+                                        // 带图和纯文字楼层结构差别大，分开复用
+                                        contentType = { (_, _, renders) -> if (renders.any { it is PicContentRender }) "PostWithPic" else "Post" },
                                     ) { (item, blocked, renders, subPosts) ->
                                         Container {
                                             PostCard(

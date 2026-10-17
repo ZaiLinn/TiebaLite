@@ -116,6 +116,14 @@ object EmoticonUtil {
         }
     }
 
+    private const val EMOTICON_INLINE_PREFIX = "Emoticon#"
+
+    /** 文字中出现的表情 id（[emoticonString] 打上的内嵌内容标注） */
+    val AnnotatedString.emoticonIds: List<String>
+        get() = getStringAnnotations(INLINE_CONTENT_TAG, 0, length)
+            .mapNotNull { it.item.takeIf { item -> item.startsWith(EMOTICON_INLINE_PREFIX) }?.removePrefix(EMOTICON_INLINE_PREFIX) }
+            .distinct()
+
     /** 表情正则只编译一次：列表滑动时每个楼层/卡片都会用到 */
     private val emoticonPattern: Pattern by lazy { Pattern.compile(getRegex(EMOTICON_ALL_TYPE)) }
 

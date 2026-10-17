@@ -126,29 +126,41 @@ object EmoticonManager {
     private val drawableCache: MutableMap<String, Drawable> = mutableMapOf()
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
+    /** 按"表情 id@尺寸"缓存，所有文字共用；只在组合线程（主线程）访问 */
+    private val inlineContentCache = HashMap<String, InlineTextContent>()
+
+    /**
+     * 只为 [ids] 里的表情生成内嵌内容。原来每段文字都为全部表情（几百个）各建一个
+     * InlineTextContent，帖子页每层楼、每条楼中楼都来一遍，快速滑动时主线程大量分配。
+     */
     fun getEmoticonInlineContent(
-        sizePx: Float
+        sizePx: Float,
+        ids: Collection<String>,
     ): Map<String, InlineTextContent> {
-        return emoticonIds.associate { id ->
-            "Emoticon#$id" to InlineTextContent(
-                placeholder = Placeholder(
-                    sizePx.pxToSp().sp,
-                    sizePx.pxToSp().sp,
-                    PlaceholderVerticalAlign.TextCenter
-                ),
-                children = {
-                    AsyncImage(
-                        imageUri = rememberEmoticonUri(id = id),
-                        contentDescription = stringResource(
-                            id = R.string.emoticon,
-                            getEmoticonNameById(id) ?: ""
-                        ),
-                        modifier = Modifier.size(sizePx.pxToDp().dp)
-                    )
-                }
-            )
+        if (ids.isEmpty()) return emptyMap()
+        return ids.filter { emoticonIds.contains(it) }.associate { id ->
+            "Emoticon#$id" to inlineContentCache.getOrPut("$id@$sizePx") { createInlineContent(id, sizePx) }
         }
     }
+
+    private fun createInlineContent(id: String, sizePx: Float): InlineTextContent =
+        InlineTextContent(
+            placeholder = Placeholder(
+                sizePx.pxToSp().sp,
+                sizePx.pxToSp().sp,
+                PlaceholderVerticalAlign.TextCenter
+            ),
+            children = {
+                AsyncImage(
+                    imageUri = rememberEmoticonUri(id = id),
+                    contentDescription = stringResource(
+                        id = R.string.emoticon,
+                        getEmoticonNameById(id) ?: ""
+                    ),
+                    modifier = Modifier.size(sizePx.pxToDp().dp)
+                )
+            }
+        )
 
     fun init(context: Context) {
         contextRef = WeakReference(context)

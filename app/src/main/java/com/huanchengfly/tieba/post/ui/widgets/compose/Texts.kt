@@ -57,6 +57,7 @@ import com.huanchengfly.tieba.post.spToPxFloat
 import com.huanchengfly.tieba.post.ui.common.PbContentText
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.utils.EmoticonManager
+import com.huanchengfly.tieba.post.utils.EmoticonUtil.emoticonIds
 import com.huanchengfly.tieba.post.utils.EmoticonUtil.emoticonString
 import com.huanchengfly.tieba.post.utils.calcLineHeightPx
 import java.util.regex.Pattern
@@ -151,10 +152,16 @@ fun EmoticonText(
     val sizePx = calcLineHeightPx(mergedStyle)
     val spacingLineHeight =
         remember(sizePx) { (sizePx + lineSpacing.value.spToPxFloat()).pxToSpFloat().sp }
-    val emoticonInlineContent =
-        remember(sizePx) { EmoticonManager.getEmoticonInlineContent(sizePx * emoticonSize) }
+    // 表情解析要跑正则，结果随 text 缓存
+    val displayText = remember(text) { text.emoticonString }
+    val emoticonInlineContent = remember(displayText, sizePx, emoticonSize) {
+        EmoticonManager.getEmoticonInlineContent(sizePx * emoticonSize, displayText.emoticonIds)
+    }
+    val mergedInlineContent = remember(emoticonInlineContent, inlineContent) {
+        if (inlineContent.isEmpty()) emoticonInlineContent else emoticonInlineContent + inlineContent
+    }
     IconText(
-        text.emoticonString,
+        displayText,
         modifier,
         color,
         fontSize,
@@ -169,7 +176,7 @@ fun EmoticonText(
         softWrap,
         maxLines,
         minLines,
-        emoticonInlineContent + inlineContent,
+        mergedInlineContent,
         onTextLayout,
         style
     )
@@ -283,7 +290,7 @@ fun IconText(
         softWrap,
         maxLines,
         minLines,
-        iconInlineContent + inlineContent,
+        remember(iconInlineContent, inlineContent) { iconInlineContent + inlineContent },
         onTextLayout,
         style
     )

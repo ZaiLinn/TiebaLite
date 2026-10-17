@@ -15,15 +15,40 @@ import org.litepal.extension.findAllAsync
 object BlockManager {
     private val blockList: MutableList<Block> = mutableListOf()
 
+    /**
+     * 规则的不可变快照，关键词预先解析。
+     *
+     * shouldBlock 在加载每页数据时对每个楼层、楼中楼都会调用（在 IO 线程），
+     * 原来每次都重新过滤列表、用 Gson 解析关键词 JSON，而且与主线程的增删并发访问同一个可变列表。
+     */
+    private class Rules(blocks: List<Block>) {
+        val blackList = blocks.filter { it.category == Block.CATEGORY_BLACK_LIST }
+        val whiteList = blocks.filter { it.category == Block.CATEGORY_WHITE_LIST }
+        val blackKeywords = blackList.filter { it.type == Block.TYPE_KEYWORD }.map { it.getKeywords() }
+        val whiteKeywords = whiteList.filter { it.type == Block.TYPE_KEYWORD }.map { it.getKeywords() }
+        val blackUsers = blackList.filter { it.type == Block.TYPE_USER }
+        val whiteUsers = whiteList.filter { it.type == Block.TYPE_USER }
+    }
+
+    @Volatile
+    private var rules = Rules(emptyList())
+
+    private fun updateRules(change: MutableList<Block>.() -> Unit) {
+        synchronized(blockList) {
+            blockList.change()
+            rules = Rules(blockList.toList())
+        }
+    }
+
     val blackList: List<Block>
-        get() = blockList.filter { it.category == Block.CATEGORY_BLACK_LIST }
+        get() = rules.blackList
 
     val whiteList: List<Block>
-        get() = blockList.filter { it.category == Block.CATEGORY_WHITE_LIST }
+        get() = rules.whiteList
 
     fun addBlock(block: Block) {
         block.save()
-        blockList.add(block)
+        updateRules { add(block) }
     }
 
     fun addBlockAsync(
@@ -33,39 +58,33 @@ object BlockManager {
         block.saveAsync()
             .listen {
                 callback?.invoke(it)
-                blockList.add(block)
+                updateRules { add(block) }
             }
     }
 
     fun removeBlock(id: Long) {
         LitePal.delete<Block>(id)
-        blockList.removeAll { it.id == id }
+        updateRules { removeAll { it.id == id } }
     }
 
     fun init() {
         LitePal.findAllAsync<Block>().listen { blocks ->
-            blockList.addAll(blocks)
+            updateRules { addAll(blocks) }
         }
     }
 
     fun shouldBlock(content: String): Boolean {
-        return blackList.any { block ->
-            block.type == Block.TYPE_KEYWORD
-                    && block.getKeywords().all { content.contains(it) }
-        } && whiteList.none { block ->
-            block.type == Block.TYPE_KEYWORD
-                    && block.getKeywords().all { content.contains(it) }
-        }
+        val rules = rules
+        return rules.blackKeywords.any { keywords -> keywords.all { content.contains(it) } } &&
+            rules.whiteKeywords.none { keywords -> keywords.all { content.contains(it) } }
     }
 
     fun shouldBlock(userId: Long = 0L, userName: String? = null): Boolean {
-        return blackList.any { block ->
-            block.type == Block.TYPE_USER
-                    && (block.uid == userId.toString() || block.username == userName)
-        } && whiteList.none { block ->
-            block.type == Block.TYPE_USER
-                    && (block.uid == userId.toString() || block.username == userName)
-        }
+        val rules = rules
+        if (rules.blackUsers.isEmpty()) return false
+        val uid = userId.toString()
+        return rules.blackUsers.any { it.uid == uid || it.username == userName } &&
+            rules.whiteUsers.none { it.uid == uid || it.username == userName }
     }
 
     fun ThreadInfo.shouldBlock(): Boolean =
