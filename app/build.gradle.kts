@@ -264,9 +264,6 @@ dependencies {
     androidTestRuntimeOnly(androidx.test.runner)
 
     //Glide
-    implementation(glide.core)
-    ksp(glide.ksp)
-    implementation(glide.okhttp3.integration)
 
     implementation(google.material)
 

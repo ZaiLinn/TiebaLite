@@ -328,16 +328,6 @@ libraries:
     datastore-preferences:
       alias: androidx-datastore-preferences
       version: 1.0.0
-  com.github.bumptech.glide:
-    glide:
-      alias: glide-core
-      version: 4.16.0
-    okhttp3-integration:
-      alias: glide-okhttp3-integration
-      version-ref: glide-core
-    ksp:
-      alias: glide-ksp
-      version-ref: glide-core
   com.squareup.okhttp3:
     okhttp:
       alias: okhttp3-core
