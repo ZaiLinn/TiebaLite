@@ -4,6 +4,7 @@ import android.util.Base64
 import com.huanchengfly.tieba.post.api.models.SofireResponseData
 import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
 import com.huanchengfly.tieba.post.toMD5
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -90,7 +91,11 @@ object SofireUtils {
                 decryptData.token
             }
             .catch {
-                it.printStackTrace()
+                // zid 只是风控附加参数，拿不到时用空串继续。不能吞掉异常后什么都不发：
+                // 下游 fetchAccountFlow 用 zip 合并，空 Flow 会让登录既不成功也不失败，
+                // 界面一直停在"请稍候"。
+                Log.w("SofireUtils", "fetchZid failed, continue without zid", it)
+                emit("")
             }
     }
 }

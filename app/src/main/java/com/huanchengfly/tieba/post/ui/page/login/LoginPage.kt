@@ -268,6 +268,8 @@ class LoginWebViewClient(
             if (bduss == null || sToken == null) {
                 return
             }
+            // 同一登录过程中 onPageFinished 可能触发多次，只发起一次账号拉取
+            isLoadingAccount = true
             if (!baiduId.isNullOrEmpty() && ClientUtils.baiduId.isNullOrEmpty()) {
                 coroutineScope.launch {
                     ClientUtils.saveBaiduId(context, baiduId)

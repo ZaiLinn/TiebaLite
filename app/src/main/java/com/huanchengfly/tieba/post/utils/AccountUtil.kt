@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.zip
 import org.litepal.LitePal
 import org.litepal.LitePal.findAll
@@ -189,6 +190,8 @@ object AccountUtil {
                             }
                     }
             }
+            // 兜底：任何一步意外变成空 Flow 时报错，而不是静默结束让登录页一直等待
+            .onEmpty { error("获取账号信息失败") }
             .flowOn(Dispatchers.IO)
     }
 
