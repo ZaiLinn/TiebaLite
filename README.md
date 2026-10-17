@@ -46,6 +46,9 @@
 | 📋 应用日志 | 关于页 → 查看日志，可复制用于反馈问题 |
 | 🧹 类型过滤 | 推荐流和吧页面可隐藏投票、带货、应用/游戏推广、抽奖、打分帖 |
 | 🎚️ 等级过滤 | 帖子内隐藏低于指定等级用户的回复 |
+| 💬 私信（实验） | 消息页和用户主页收发私信，默认关闭，开启前请阅读风险提示 |
+| 🔗 干净链接 | 复制网页链接时自动去掉贴吧的跟踪参数 |
+| ⚡ 流畅滑动 | 安装时预编译应用代码，请求设备最高刷新率 |
 | 🚫 无广告 | 无横幅、无推广、无信息流广告 |
 
 ## 🆕 本分支的改动
@@ -59,6 +62,7 @@
 | 🔋 签到 | 在系统设置里把本应用的电池优化设为「不限制」，避免签到被系统中断 |
 | 🔄 更新 | 关于页 → 检查更新，下载完成后按提示安装 |
 | 📋 反馈问题 | 关于页 → 查看日志 → 复制，提交 issue 时附上 |
+| 💬 私信 | 设置 → 更多设置 → 私信（实验）开启。贴吧私信服务器只支持未加密连接，建立连接时登录凭证会明文发送，请避免在公共 Wi-Fi 下使用 |
 
 ## 💬 反馈
 
@@ -100,6 +104,8 @@ keystore.key.password=your_key_password
 
 产物位于 `app/build/outputs/apk/`。
 
+`app/src/main/baseline-prof.txt` 是覆盖全部应用代码的基线配置文件，安装时系统据此把应用代码预编译成机器码；缺少它时应用代码会先由解释器运行，滑动明显卡顿。
+
 ### 发布
 
 推送 `v*` 格式的 tag 会触发 GitHub Actions 构建并发布 Release：
@@ -115,12 +121,14 @@ CI 从仓库 Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`
 - **[HuanCheng65](https://github.com/HuanCheng65)**：原创开发并维护本项目至 2024 年归档，所有原始代码与架构设计归原作者所有。
 - **qaqmin**：v4.0.0 至 v4.0.60 的修改版本。
 - **[ForbidAd4TieBa](https://github.com/aikavvak12una/ForbidAd4TieBa)**:部分功能参考
+- **[aiotieba](https://github.com/lumina37/aiotieba)**：私信长连接协议参考
 - 详见 [CREDITS.md](CREDITS.md)。
 
 ## 🔗 相关项目
 
-- [Starry-OvO/aiotieba](https://github.com/Starry-OvO/aiotieba)：Asynchronous I/O Client for Baidu Tieba
+- [lumina37/aiotieba](https://github.com/lumina37/aiotieba)：Asynchronous I/O Client for Baidu Tieba
 - [n0099/tbclient.protobuf](https://github.com/n0099/tbclient.protobuf)：百度贴吧客户端 Protocol Buffers 定义文件合集
+- [n0099/open-tbclient](https://github.com/n0099/open-tbclient)：历代百度贴吧客户端反编译源码
 
 ## ⚠️ 免责声明
 
