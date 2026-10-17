@@ -456,6 +456,13 @@
     <string name="settings_block_lottery_thread_summary">隐藏推荐和吧页面中的抽奖活动帖</string>
     <string name="settings_block_score_thread">不看打分贴</string>
     <string name="settings_block_score_thread_summary">隐藏推荐和吧页面中的打分帖</string>
+    <string name="settings_comment_level_filter">按等级过滤楼层</string>
+    <string name="settings_comment_level_filter_summary">帖子内隐藏等级低于下方阈值的用户的回复；一楼、楼主和自己的回复始终显示</string>
+    <string name="settings_comment_filter_minimum_level">最低显示等级</string>
+    <string name="settings_comment_filter_keep_with_replies">保留有楼中楼的楼层</string>
+    <string name="settings_comment_filter_keep_with_replies_summary">低等级用户的楼层下面有回复时仍然显示</string>
+    <string name="settings_comment_filter_skip_nested">不过滤楼中楼</string>
+    <string name="settings_comment_filter_skip_nested_summary">只过滤楼层，楼中楼预览里的回复全部显示</string>
     <string name="desc_image">图片</string>
     <string name="desc_add_image">添加图片</string>
     <string name="toast_upload_image_failed">上传图片失败 %s</string>

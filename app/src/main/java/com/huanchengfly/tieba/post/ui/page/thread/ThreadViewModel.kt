@@ -36,7 +36,10 @@ import com.huanchengfly.tieba.post.removeAt
 import com.huanchengfly.tieba.post.repository.EmptyDataException
 import com.huanchengfly.tieba.post.repository.PbPageRepository
 import com.huanchengfly.tieba.post.ui.common.PbContentRender
+import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
+import com.huanchengfly.tieba.post.utils.CommentLevelFilter
+import com.huanchengfly.tieba.post.utils.appPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -51,6 +54,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
+
+/**
+ * 按设置隐藏低等级用户的楼层。只用于生成展示数据，
+ * 分页用的楼层 id（getNextPagePostId 等）仍取自过滤前的列表。
+ */
+private fun List<Post>.filterByLevel(response: PbPageResponse, keepPostId: Long = 0L): List<Post> =
+    CommentLevelFilter.filter(
+        posts = this,
+        settings = App.INSTANCE.appPreferences.commentLevelFilterSettings,
+        threadAuthorId = response.data_?.thread?.author?.id ?: 0L,
+        selfId = AccountUtil.getLoginInfo()?.uid?.toLongOrNull(),
+        keepPostId = keepPostId,
+    )
 
 private fun ThreadInfo.getNextPagePostId(
     postIds: List<Long> = emptyList(),
@@ -175,7 +191,8 @@ class ThreadViewModel @Inject constructor() :
                         response.data_.thread.author,
                         response.data_.user ?: User(),
                         firstPost,
-                        notFirstPosts.map { PostItemData(it.wrapImmutable()) },
+                        notFirstPosts.filterByLevel(response, keepPostId = postId)
+                            .map { PostItemData(it.wrapImmutable()) },
                         response.data_.thread,
                         response.data_.forum,
                         response.data_.anti,
@@ -211,7 +228,7 @@ class ThreadViewModel @Inject constructor() :
                     ThreadPartialChange.LoadFirstPage.Success(
                         response.data_.thread.title,
                         response.data_.thread.author,
-                        notFirstPosts.map { PostItemData(it.wrapImmutable()) },
+                        notFirstPosts.filterByLevel(response).map { PostItemData(it.wrapImmutable()) },
                         response.data_.thread,
                         response.data_.page.current_page,
                         response.data_.page.new_total_page,
@@ -243,7 +260,7 @@ class ThreadViewModel @Inject constructor() :
                     val posts = postList.filterNot { it.floor == 1 || postIds.contains(it.id) }
                     ThreadPartialChange.LoadMore.Success(
                         response.data_.thread.author,
-                        posts.map { PostItemData(it.wrapImmutable()) },
+                        posts.filterByLevel(response).map { PostItemData(it.wrapImmutable()) },
                         response.data_.thread,
                         response.data_.page.current_page,
                         response.data_.page.new_total_page,
@@ -277,7 +294,7 @@ class ThreadViewModel @Inject constructor() :
                     val posts = postList.filterNot { it.floor == 1 || postIds.contains(it.id) }
                     ThreadPartialChange.LoadPrevious.Success(
                         response.data_.thread.author,
-                        posts.map { PostItemData(it.wrapImmutable()) },
+                        posts.filterByLevel(response).map { PostItemData(it.wrapImmutable()) },
                         response.data_.thread,
                         response.data_.page.current_page,
                         response.data_.page.new_total_page,
@@ -316,7 +333,7 @@ class ThreadViewModel @Inject constructor() :
                     } else {
                         ThreadPartialChange.LoadLatestPosts.Success(
                             author = response.data_.thread.author,
-                            data = postList.map { PostItemData(it.wrapImmutable()) },
+                            data = postList.filterByLevel(response).map { PostItemData(it.wrapImmutable()) },
                             threadInfo = response.data_.thread,
                             currentPage = response.data_.page.current_page,
                             totalPage = response.data_.page.new_total_page,

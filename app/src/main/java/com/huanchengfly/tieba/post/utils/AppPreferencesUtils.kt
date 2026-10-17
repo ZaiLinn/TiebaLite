@@ -81,6 +81,25 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var blockScoreThread by DataStoreDelegates.boolean(defaultValue = false)
 
+    var commentLevelFilter by DataStoreDelegates.boolean(defaultValue = false)
+
+    var commentFilterMinimumLevel by DataStoreDelegates.float(
+        defaultValue = CommentLevelFilter.DEFAULT_MINIMUM_LEVEL.toFloat()
+    )
+
+    var commentFilterKeepWithReplies by DataStoreDelegates.boolean(defaultValue = false)
+
+    var commentFilterSkipNested by DataStoreDelegates.boolean(defaultValue = false)
+
+    val commentLevelFilterSettings: CommentLevelFilter.Settings
+        get() = CommentLevelFilter.Settings(
+            enabled = commentLevelFilter,
+            minimumLevel = commentFilterMinimumLevel.toInt()
+                .coerceIn(CommentLevelFilter.MIN_LEVEL, CommentLevelFilter.MAX_LEVEL),
+            keepWithReplies = commentFilterKeepWithReplies,
+            skipNested = commentFilterSkipNested,
+        )
+
     val threadTypeFilterOptions: ThreadTypeFilter.Options
         get() = ThreadTypeFilter.Options(
             blockVideo = blockVideo,
