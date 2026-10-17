@@ -51,8 +51,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +74,7 @@ import com.huanchengfly.tieba.post.api.booleanToString
 import com.huanchengfly.tieba.post.api.models.protos.Post
 import com.huanchengfly.tieba.post.api.models.protos.ThreadInfo
 import com.huanchengfly.tieba.post.api.models.protos.User
+import com.huanchengfly.tieba.post.arch.AppScope
 import com.huanchengfly.tieba.post.arch.GlobalEvent
 import com.huanchengfly.tieba.post.arch.ImmutableHolder
 import com.huanchengfly.tieba.post.arch.collectPartialAsState
@@ -108,9 +111,13 @@ import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import kotlin.concurrent.thread
 import kotlin.math.max
 
 object ThreadPageFrom {
@@ -199,7 +206,9 @@ private fun ThreadLoadMoreIndicator(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
+private const val HISTORY_SAVE_DEBOUNCE_MS = 800L
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class, FlowPreview::class)
 @Composable
 fun ThreadPage(
     threadId: Long,
@@ -350,11 +359,8 @@ fun ThreadPage(
     }
     val loadMorePreloadCount by remember {
         derivedStateOf {
-            if (hasMore) {
-                1
-            } else {
-                0
-            }
+            // 还剩 5 层楼时就开始加载下一页；原来是 1，要等最后一层露出来才请求
+            if (hasMore) 5 else 0
         }
     }
     val isCollected = remember(thread) {
@@ -381,18 +387,15 @@ fun ThreadPage(
         initialValue = ModalBottomSheetValue.Hidden,
         skipHalfExpanded = true
     )
+    // 滑动时每帧都会重算：先从列表项 key 解析出楼层 id 再按 id 查找，
+    // 不要对每层楼都 toString 再比较字符串
     val lastVisibilityPost by remember {
         derivedStateOf {
-            data.firstOrNull { (post) ->
-                val lastPostKey = lazyListState.layoutInfo.visibleItemsInfo.lastOrNull { info ->
-                    info.key is String && (info.key as String).startsWith("Post_")
-                }?.key as String?
-                lastPostKey?.endsWith(post.get { id }.toString()) == true
-            }?.post ?: firstPost
+            val lastPostId = lazyListState.layoutInfo.visibleItemsInfo
+                .lastOrNull { info -> (info.key as? String)?.startsWith("Post_") == true }
+                ?.let { (it.key as String).removePrefix("Post_").toLongOrNull() }
+            lastPostId?.let { id -> data.firstOrNull { (post) -> post.get { this.id } == id }?.post } ?: firstPost
         }
-    }
-    val lastVisibilityPostId by remember {
-        derivedStateOf { lastVisibilityPost?.get { id } ?: 0L }
     }
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -468,7 +471,7 @@ fun ThreadPage(
         dialogState = updateCollectMarkDialogState,
         readFloor = readFloorBeforeBack,
         threadId = threadId,
-        markPostId = lastVisibilityPostId,
+        markPostId = { lastVisibilityPost?.get { id } ?: 0L },
         onDismiss = { navigator.popBackStack() }
     )
     MyBackHandler(
@@ -546,38 +549,36 @@ fun ThreadPage(
         }
     }
 
-    var savedHistory by remember { mutableStateOf(false) }
-    LaunchedEffect(threadId, threadTitle, author, lastVisibilityPostId) {
-        val saveHistory = {
-            thread {
-                runCatching {
-                    if (threadTitle.isNotBlank()) {
-                        HistoryUtil.saveHistory(
-                            History(
-                                title = threadTitle,
-                                data = threadId.toString(),
-                                type = HistoryUtil.TYPE_THREAD,
-                                extras = ThreadHistoryInfoBean(
-                                    isSeeLz = isSeeLz,
-                                    pid = lastVisibilityPostId.toString(),
-                                    forumName = forum?.get { name },
-                                    floor = lastVisibilityPost?.get { floor }?.toString()
-                                ).toJson(),
-                                avatar = StringUtil.getAvatarUrl(author?.get { portrait }),
-                                username = author?.get { nameShow }
-                            ),
-                            async = true
-                        )
-                        savedHistory = true
-                        Log.i("ThreadPage", "saveHistory $lastVisibilityPostId")
-                    }
+    // 浏览历史：最后可见楼层变化后防抖再保存。原来每出现一层新楼就新开线程写一次数据库，
+    // 而且在组合阶段读取最后可见楼层，滑动时整页跟着重组
+    val latestThreadTitle by rememberUpdatedState(threadTitle)
+    LaunchedEffect(threadId) {
+        snapshotFlow {
+            val post = lastVisibilityPost
+            Triple(latestThreadTitle, post?.get { id } ?: 0L, post?.get { floor })
+        }
+            .filter { (title) -> title.isNotBlank() }
+            .distinctUntilChanged()
+            .debounce(HISTORY_SAVE_DEBOUNCE_MS)
+            .collect { (title, postId, floor) ->
+                val history = History(
+                    title = title,
+                    data = threadId.toString(),
+                    type = HistoryUtil.TYPE_THREAD,
+                    extras = ThreadHistoryInfoBean(
+                        isSeeLz = isSeeLz,
+                        pid = postId.toString(),
+                        forumName = forum?.get { name },
+                        floor = floor?.toString()
+                    ).toJson(),
+                    avatar = StringUtil.getAvatarUrl(author?.get { portrait }),
+                    username = author?.get { nameShow }
+                )
+                AppScope.launch(Dispatchers.IO) {
+                    runCatching { HistoryUtil.saveHistory(history, async = true) }
+                    Log.i("ThreadPage", "saveHistory $postId")
                 }
             }
-        }
-
-        if (!savedHistory || lastVisibilityPostId != 0L) {
-            saveHistory()
-        }
     }
 
     val pullRefreshState = rememberPullRefreshState(

@@ -74,7 +74,8 @@ internal fun UpdateCollectMarkDialog(
     dialogState: DialogState,
     readFloor: Int,
     threadId: Long,
-    markPostId: Long,
+    /** 点确认时才读取，避免调用方在组合阶段读取滚动相关状态 */
+    markPostId: () -> Long,
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current.applicationContext
@@ -82,10 +83,11 @@ internal fun UpdateCollectMarkDialog(
         dialogState = dialogState,
         onConfirm = {
             onDismiss()
-            if (markPostId != 0L) {
+            val postId = markPostId()
+            if (postId != 0L) {
                 AppScope.launch(Dispatchers.Main) {
                     TiebaApi.getInstance()
-                        .addStoreFlow(threadId, markPostId)
+                        .addStoreFlow(threadId, postId)
                         .catch {
                             context.toastShort(
                                 R.string.message_update_collect_mark_failed,
