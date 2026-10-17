@@ -106,20 +106,10 @@ keystore.key.password=your_key_password
 
 `app/src/main/baseline-prof.txt` 是覆盖全部应用代码的基线配置文件，安装时系统据此把应用代码预编译成机器码；缺少它时应用代码会先由解释器运行，滑动明显卡顿。
 
-### 发布
-
-推送 `v*` 格式的 tag 会触发 GitHub Actions 构建并发布 Release：
-
-1. 修改 `application.properties` 里的 `versionName` 和 `versionCode`。
-2. 在 `AI_CHANGELOG.md` 顶部加一节 `## vX.Y.Z`，其中 `### 🇨🇳 中文` 小节会作为发布说明。
-3. `git tag vX.Y.Z && git push origin vX.Y.Z`。
-
-CI 从仓库 Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`）还原签名，缺少任何一项都会构建失败。tag 要和 `versionName` 一致，应用内更新才能识别新版本。
-
 ## 👨‍💻 致谢
 
 - **[HuanCheng65](https://github.com/HuanCheng65)**：原创开发并维护本项目至 2024 年归档，所有原始代码与架构设计归原作者所有。
-- **qaqmin**：v4.0.0 至 v4.0.60 的修改版本。
+- **[qaqmin](https://github.com/qaqmin/TiebaLite)**：v4.0.0 至 v4.0.60 的修改版本。
 - **[ForbidAd4TieBa](https://github.com/aikavvak12una/ForbidAd4TieBa)**:部分功能参考
 - **[aiotieba](https://github.com/lumina37/aiotieba)**：私信长连接协议参考
 - 详见 [CREDITS.md](CREDITS.md)。
