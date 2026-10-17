@@ -1,0 +1,121 @@
+name: Build Release APK
+
+# 触发策略：workflow_dispatch（手动验证）+ tag 推送（v*）自动构建并发布。
+# 不挂分支 push 触发——按约定避免频繁消耗 GitHub Actions；tag 推送只在发版时发生
+# （一次 release ≈ 一次 10-15 分钟构建，公开仓库 Actions 时长免费，对 5000 次/小时
+# 的 API 配额消耗可忽略）。
+#
+# 双宿主分工：GitHub 线 = tag 自动构建 + 自动发布（release 用自动注入的
+# GITHUB_TOKEN，无需任何 Secret——签名 keystore 本就在仓库内）；
+# Mac 构建机线 = 验证/兜底产出；Codeberg 线保留但暂不使用
+# （其 runner 有 10 分钟硬杀，等基础设施恢复）。
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # runner 镜像自带 Android SDK（/usr/local/lib/android/sdk，含 cmdline-tools），
+      # 接受 licenses 后由 AGP 按 compileSdk 自行补装 platform / build-tools；
+      # 显式补装 platforms;android-36 + build-tools;36.0.0 兜底。
+      # （不用 android-actions/setup-android@v3：其内部安装已废弃的 'tools' 包，
+      #   在新版 cmdline-tools 下必失败，实测 exit 1）
+      - name: Set up Android SDK
+        run: |
+          SDK=/usr/local/lib/android/sdk
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools" >/dev/null 2>&1 || true
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          ls "$SDK/platforms" "$SDK/build-tools"
+
+      # keystore.properties 不入库（.gitignore），CI 现场生成——与 Codeberg 线同款，
+      # 指向仓库内已跟踪的 app/tblite_debug.jks（alias/密码见文件内容）
+      - name: Generate keystore.properties
+        run: |
+          printf 'keystore.file=app/tblite_debug.jks\nkeystore.password=tiebalite\nkeystore.key.alias=tiebalite\nkeystore.key.password=tiebalite\n' > keystore.properties
+          cat keystore.properties
+
+      # sweet-dependency 配置把官方源覆盖成了 aliyun 国内镜像（为 Codeberg/国内网络加的），
+      # GitHub runner 在海外，拉镜像超时/不可用导致插件标记 artifact 解析失败
+      # （与 Codeberg runner 同型失败）。CI 侧改回官方默认源——只改工作副本，不入库，
+      # 本地与 Mac 构建机（国内网络）继续使用镜像配置。
+      - name: Use official repositories on CI
+        run: |
+          python3 - <<'EOF'
+          p = 'gradle/sweet-dependency/sweet-dependency-config.yaml'
+          s = open(p, encoding='utf-8').read()
+          for mirror, official in (
+              ('https://maven.aliyun.com/repository/gradle-plugin', 'https://plugins.gradle.org/m2'),
+              ('https://maven.aliyun.com/repository/google', 'https://dl.google.com/dl/android/maven2'),
+              ('https://maven.aliyun.com/repository/public', 'https://repo.maven.apache.org/maven2'),
+          ):
+              s = s.replace(mirror, official)
+          open(p, 'w', encoding='utf-8').write(s)
+          print('repositories switched to official sources')
+          EOF
+          grep -A 12 "^repositories:" gradle/sweet-dependency/sweet-dependency-config.yaml
+
+      # 内存调优：GitHub runner 7G/2C，对齐 Codeberg tag 路径的实测组合——
+      # Gradle daemon 压到 2048m 给编译期让路，Kotlin daemon 4096m（编译期峰值所在），
+      # workers.max=1 砍掉与两个 daemon 并行的 worker JVM 峰值。追加同名键后者胜出。
+      - name: Tune Gradle for release build
+        run: |
+          printf '\norg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED\nkotlin.daemon.jvmargs=-Xmx4096m\norg.gradle.workers.max=1\n' >> gradle.properties
+          echo "=== gradle.properties 尾部（确认覆盖生效）==="
+          tail -6 gradle.properties
+
+      - name: Build release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --console=plain clean assembleRelease --stacktrace
+          echo "=== 构建产物 ==="
+          ls -lh app/build/outputs/apk/release/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      # 自动发布（仅 tag 触发）：gh CLI 预装在 runner，凭据用自动注入的 GITHUB_TOKEN。
+      # 不删旧 release——已存在则更新说明并 clobber 覆盖资产，避免"删了建不回"的半程状态。
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          APK=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          # 发布说明：从 AI_CHANGELOG.md 提取本版中文段落（与 Codeberg 线同源）
+          NOTES=$(awk -v tag="$TAG" 'index($0, "## " tag " ") == 1 || $0 == "## " tag {found=1; next} found && index($0, "## ") == 1 {exit} found {print}' AI_CHANGELOG.md)
+          CN=$(printf '%s\n' "$NOTES" | awk 'index($0,"### ")==1 && /中文/{found=1; next} index($0,"### ")==1 {found=0} found')
+          [ -n "$CN" ] || CN="TiebaLite $TAG"
+          printf '%s\n' "$CN" > notes.md
+          # ai 体验版标 prerelease
+          PRERELEASE=""
+          case "$TAG" in *-ai*) PRERELEASE="--prerelease";; esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+            gh release edit "$TAG" --title "$TAG" --notes-file notes.md $PRERELEASE
+          else
+            gh release create "$TAG" "$APK" --title "$TAG" --notes-file notes.md --latest $PRERELEASE
+          fi
+          echo "published: https://github.com/qaqmin09577/TiebaLite/releases/tag/$TAG"

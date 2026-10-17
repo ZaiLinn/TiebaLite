@@ -1,0 +1,18 @@
+{
+  "url": "http://10.0.2.2:8801/repos/min09577/TiebaLite/releases/latest",
+  "tag_name": "v4.0.0-ai.51",
+  "name": "4.0.0-ai.51",
+  "html_url": "http://10.0.2.2:8801/tag/v4.0.0-ai.51",
+  "body": "mock 更新日志：P1/P2 修复验收用（8801 独占端口实验）",
+  "draft": false,
+  "prerelease": true,
+  "created_at": "2026-09-13T00:00:00Z",
+  "published_at": "2026-09-13T00:00:00Z",
+  "assets": [
+    {
+      "name": "release-4.0.0-ai.51(400005).apk",
+      "browser_download_url": "http://10.0.2.2:8801/release-4.0.0-ai.51(400005).apk",
+      "digest": "sha256:fea9c5e5546c6f669874ebaa4656dd4c390f1c0484afb3299f0ba082437b74fc"
+    }
+  ]
+}

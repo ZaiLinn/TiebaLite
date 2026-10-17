@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- debug 构建专用：全量允许明文 HTTP（本地 mock 验收用）；release 保持主配置（禁明文） -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

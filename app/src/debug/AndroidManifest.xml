@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- debug 构建：允许明文 HTTP，支持本地 mock 服务器（http://10.0.2.2:port 等）做更新链路验收 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:networkSecurityConfig="@xml/network_security_config_debug"
+        android:usesCleartextTraffic="true"
+        tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic" />
+</manifest>

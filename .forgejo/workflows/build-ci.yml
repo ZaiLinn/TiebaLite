@@ -1,0 +1,388 @@
+name: Build, Deploy
+run-name: Build, Deploy ${{ github.ref_name }}
+
+on:
+  push:
+    branches: [master, 4.0-dev]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+# 不写 permissions: Forgejo 不支持该字段 (Codeberg 每次 run 都告警并整段忽略),
+# 见 docs.codeberg.org/ci — 发布步骤用 github.token (= forgejo.token) 即可
+
+jobs:
+  build:
+    # Codeberg 托管 runner 仅 tiny(1C/2G/2min) / small(2C/4G/5min) / medium(4C/8G/10min)
+    # 三档, 没有更大规格 (codeberg.org/actions/meta). -lazy 变体把时长放宽到约 24h, 但取任务
+    # 延迟不可控 (actions/meta#76: 连 codeberg-medium 都出现过排队数小时); medium 的 10min
+    # 只是 guideline 并非硬限制 (本项目 09-19 实测 2h 的 run 未被超时杀掉), 且本仓库历史 run
+    # 在 medium 上均为秒级启动, 故用 medium.
+    # 8G 额度把磁盘写入一并计入: "用 1G 内存且写了 1G 临时文件按 2G 配额计".
+    # 2h 任务硬超时 (run #260/#261 均停在整 2h 被杀; #267 三次 attempt 全败于 1h59m).
+    # 09-21 尸检 (run #267 完整日志 + run #268 截断日志): daemon 死于 compileDebugKotlin,
+    # 报 "Gradle build daemon disappeared unexpectedly"——即 cgroup OOM kill, 不是构建错误.
+    # 真凶是 kotlin.compiler.execution.strategy=in-process: Kotlin 编译器挤进 Gradle daemon
+    # 同一个 JVM, 编译期两套数据结构的存活集叠加, 峰值 RSS 顶爆 8G 额度被宿主 SIGKILL.
+    # 对照实验: run #251 用项目默认配置 (Kotlin 独立 daemon + 并行 + build cache 开) 22 分钟
+    # 全绿; 而内存砍半的 #267 (3072m + workers.max=1 + in-process) 反而三连跪——
+    # 证明"降压"方向错了, 该恢复的是"两个 JVM 分工"而非"一个 JVM 硬扛".
+    # 本工作流回到 #251 验证过的项目默认配置 (parallel/caching 标志不动), 仅按 ref
+    # 分流微调两个 daemon 的堆 (见 Tune 步骤): 分支/PR (debug) 保 Gradle daemon 4096m
+    # (dex 合并需要) + Kotlin daemon 3072m; tag (release) 压 Gradle daemon 2048m +
+    # Kotlin daemon 4096m (给编译期 Kotlin daemon 的启动/提交让出 8G 额度).
+    # 另传 --no-build-cache: #273/#280 的"成功但产物不落盘"均出自 from-cache 快速
+    # attempt, 关缓存换取每个任务真实执行、产物确定落盘.
+    # 2026-09-24 实测: medium 的 10min 已从 guideline 变成硬限制——run #305/#306/#307
+    # 连续三次在整 10m25s 被取消 (当天更早的 #303 31min / #304 64min 未被杀, 说明是
+    # 下午新上线的策略). release 构建 20min+ (compile+R8) 在 10min 内不可能完成,
+    # 故切 -lazy 变体 (时长放宽到约 24h), 代价是取任务延迟不可控 (可能排队数小时).
+    runs-on: codeberg-medium-lazy
+    concurrency:
+      # 同一 ref 只保留最新一次 run: 修 CI 期间连续推送不会在共享队列里堆叠
+      # (Codeberg 明确要求不要占队列), 被顶掉的旧 run 自动取消
+      group: ${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        # runner 拉 actions/checkout 时 data.forgejo.org TLS 间歇被掐致整 job 秒挂 (09-19),
+        # 改纯 git clone; Forgejo 无 GitHub marketplace, 本工作流不依赖任何 uses: action
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if git clone --depth 1 --branch "${{ github.ref_name }}" "https://codeberg.org/min09577/TiebaLite.git" .; then
+              ok=1; break
+            fi
+            echo "clone failed (attempt $i), retrying..."
+            rm -rf .git
+            sleep 5
+          done
+          [ $ok -eq 1 ] || { echo "all clone attempts failed"; exit 1; }
+          git log --oneline -1
+
+      - name: Set up JDK 17
+        # setup-java (node) 不走 HTTP_PROXY 且直连 azul 间歇被掐, 改国内镜像 curl 装载
+        # 清华 Adoptium 17.0.20.1, 失败回落华为 openjdk 17.0.2 (单次下载中断 curl exit 18 的兜底)
+        run: |
+          JDK_URLS=(
+            "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jdk/x64/linux/OpenJDK17U-jdk_x64_linux_hotspot_17.0.20.1_1.tar.gz"
+            "https://mirrors.huaweicloud.com/openjdk/17.0.2/openjdk-17.0.2_linux-x64_bin.tar.gz"
+          )
+          ok=0
+          for u in "${JDK_URLS[@]}"; do
+            for i in 1 2 3; do
+              if curl -sL --max-time 600 -o /tmp/jdk.tar.gz "$u" && tar tzf /tmp/jdk.tar.gz >/dev/null 2>&1; then
+                ok=1; break 2
+              fi
+              echo "download failed ($u attempt $i), retrying..."
+              sleep 5
+            done
+          done
+          [ $ok -eq 1 ] || { echo "all JDK mirrors failed"; exit 1; }
+          mkdir -p /opt/jdk && tar xzf /tmp/jdk.tar.gz -C /opt/jdk --strip-components=1
+          # 安装包留着纯占写入额度, 解压完即删
+          rm -f /tmp/jdk.tar.gz
+          /opt/jdk/bin/java -version
+          echo "JAVA_HOME=/opt/jdk" >> "$GITHUB_ENV"
+          echo "/opt/jdk/bin" >> "$GITHUB_PATH"
+
+      - name: Set up Android SDK
+        # runner 镜像无 SDK: AGP 以 missingSdkDirectory 占位, javac 的 androidJdkImage
+        # file dependency provider 无值 -> "Cannot query the value of this provider" (09-19 根因)
+        # cmdline-tools 走 dl.google.com, 与 JDK 步骤同款重试; license 接受后 AGP 也可自愈补装
+        run: |
+          SDK=/opt/android-sdk
+          command -v unzip >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq unzip; }
+          CTL_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          ok=0
+          for i in 1 2 3; do
+            if curl -sL --max-time 600 -o /tmp/ctl.zip "$CTL_URL" && unzip -tq /tmp/ctl.zip >/dev/null 2>&1; then
+              ok=1; break
+            fi
+            echo "cmdline-tools download failed ($i), retrying..."
+            sleep 5
+          done
+          [ $ok -eq 1 ] || { echo "all cmdline-tools downloads failed"; exit 1; }
+          mkdir -p "$SDK/cmdline-tools"
+          unzip -q /tmp/ctl.zip -d "$SDK/cmdline-tools"
+          mv "$SDK/cmdline-tools/cmdline-tools" "$SDK/cmdline-tools/latest"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          ok=0
+          for i in 1 2 3; do
+            if "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platforms;android-36" "build-tools;34.0.0" "platform-tools"; then
+              ok=1; break
+            fi
+            echo "sdkmanager install failed ($i), retrying..."
+            sleep 5
+          done
+          [ $ok -eq 1 ] || { echo "sdkmanager install failed"; exit 1; }
+          ls "$SDK/platforms" "$SDK/build-tools"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          # 安装包与 apt 索引同样纯占额度, 一并清掉
+          rm -f /tmp/ctl.zip
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Generate keystore.properties
+        run: |
+          printf 'keystore.file=app/tblite_debug.jks\nkeystore.password=tiebalite\nkeystore.key.alias=tiebalite\nkeystore.key.password=tiebalite\n' > keystore.properties
+
+      - name: Tune Gradle for Codeberg runner
+        run: |
+          sed -i 's|services.gradle.org/distributions|mirrors.cloud.tencent.com/gradle|' gradle/wrapper/gradle-wrapper.properties
+          grep distributionUrl gradle/wrapper/gradle-wrapper.properties
+          # CI 侧按 ref 分流覆盖 daemon 堆 (追加同名键后者胜出) — 09-21 多轮尸检结论:
+          #   分支/PR (debug): 构建步 Gradle daemon 沿用项目默认 4096m (dex 合并需要,
+          #     #281 证明 2048m 不够) + Kotlin daemon 2048m — #269/#271 两次全绿验证过
+          #     的最轻组合 (6.1G 堆总承诺)。#283 曾试 4096m+3072m (7.2G), attempt 2 在
+          #     构建第 38 分钟 (dex 合并附近的内存峰值段) 暴毙, 疑似双 daemon 堆承诺
+          #     顶爆 8G 额度 (内存+磁盘写入合计), 故回退。单元测试与构建同一次 gradle
+          #     调用 (见 Build APK), 不做任何步间属性变更以免编译失效重跑。
+          #   tag (release): Gradle daemon 2048m + Kotlin daemon 4096m.
+          #     run #280 实测: release 编译期 Kotlin daemon 启动/堆提交是 8G 额度瓶颈,
+          #     压低 Gradle daemon (RSS ~2.4G) 给 Kotlin daemon 让路后构建 29m4s 成功;
+          #     本地完整 assembleRelease (compile+R8+shrinkRes+lintVital+package) 在该
+          #     组合下验证通过.
+          case "${{ github.ref }}" in
+            refs/tags/*)
+              printf '\norg.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED\nkotlin.daemon.jvmargs=-Xmx4096m\n' >> gradle.properties
+              # workers.max=1 同样适用于 tag 路径: #291 的分支验证结论 (砍掉与两个 daemon
+              # 并行的 javac 等 worker JVM 峰值) 对 release 路径同理, 且只降峰值不降正确性
+              printf '\norg.gradle.workers.max=1\n' >> gradle.properties
+              ;;
+            *)
+              # 09-23 下午 #300/#301 六次 attempt 全灭, 死因全部指向 Kotlin 编译堆:
+              #   #300: daemon 被宿主 kill + kspDebugKotlin/compileDebugKotlin OOM @2048m;
+              #   #301: compileDebugKotlin OOM @3072m (同代码 #293 今早 @2048m 能过,
+              #   说明堆上限只是防线, 宿主机争抢才是决定因素, 编译侧要给足)。
+              # 分支路径最终配置 (对齐 #251 全绿时的双 daemon 分工):
+              #   Kotlin daemon 4096m — 编译侧最大化;
+              #   Gradle daemon 3072m — dex 合并有 #280 实测 RSS ~2.4G 的先例 (2048m
+              #   封顶下 release dex/R8 成功), 3G 够用; 压低它给编译期让出总量
+              #   (两 daemon 封顶合计 7.2G, 留宿主机争抢余量)。
+              printf '\norg.gradle.jvmargs=-Xmx3072m -Dfile.encoding=UTF-8 --add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED\nkotlin.daemon.jvmargs=-Xmx4096m\n' >> gradle.properties
+              # workers.max=1: #291 三次 attempt 的 gradle daemon 都被宿主 OOM kill
+              # (attempt 2/3 只活 1.5-2 分钟), 序列化任务执行砍掉与两个 daemon 并行的
+              # javac 等 worker JVM 峰值; 代价是构建变慢, 分支路径 2h 额度内可容纳
+              printf '\norg.gradle.workers.max=1\n' >> gradle.properties
+              ;;
+          esac
+          echo "=== gradle.properties 尾部 (确认覆盖生效) ==="
+          tail -5 gradle.properties
+          # 网络中断会留下半成品 accessor, 复用后报 "Generated class ... not found" (09-17 CI 根因之二)
+          rm -rf .gradle/sweet-dependency/dependencies-accessors .gradle/sweet-property/properties-accessors
+          # wrapper 解包后会保留 ~226MB 的发行版 zip (.ok 标记在, 删掉不会触发重下),
+          # 先 --version 把它拉下来, 立刻删 zip
+          # timeout 兜底: 本 runner 上 gradle 进程会无限挂死不再返回 (09-23 实测三次,
+          # 详见 Build APK 步骤注释), 到点杀掉不让 Tune 步骤无限陪葬
+          timeout 300 ./gradlew --version >/dev/null 2>&1 || true
+          find "${HOME:-/root}/.gradle/wrapper/dists" -maxdepth 3 -name '*.zip' -delete 2>/dev/null || true
+
+      - name: Build APK
+        # 分支/PR 编 debug + 跑单元测试 (同一次 gradle 调用!); tag 只编 release (发布
+        # 产物), 两者互斥 — 09-20 的 tag run 在一个 job 里先后编 debug+release, 写入量
+        # 直接翻倍顶满 8G 额度。
+        # 测试必须与构建同一次调用: 拆成独立步骤并改 kotlin.daemon.jvmargs 会令编译
+        # 任务输入失效, 测试步被迫重编译 compileDebugKotlin — #287 attempt 2 与 #290
+        # 三次 attempt (mergeDebugResources 中间文件损坏 / SweetDependency 半成品
+        # accessor / OOM) 全死在该形态; 同一次调用下编译只做一次, 无步间属性变更、
+        # 无 daemon 重启、无跨步增量状态问题。
+        run: |
+          case "${{ github.ref }}" in
+            refs/tags/*) TASK=assembleRelease ;;
+            *)           TASK="assembleDebug testDebugUnitTest" ;;
+          esac
+          echo "=== $TASK (ref=${{ github.ref }}) ==="
+          # 不用 --info: 它会把 build.log 写到数百 MB (计入磁盘额度) 且显著拖慢构建;
+          # 下面 Dump 步骤所需的所有段在默认 lifecycle 日志 + --stacktrace 下都能取到.
+          # 传 --no-build-cache: run #273/#280 两次"构建 success 但产物没落盘"都发生在
+          # 大量任务 FROM-CACHE 的快速 attempt 上 (15-24min, 快于真实全量构建), 疑似
+          # 缓存恢复在该 runner 上不可靠; 关掉缓存让每个任务真实执行并写出产物, 顺带
+          # 减少写入量 (缓存条目本身也占磁盘额度). 依赖缓存 (~/.gradle/caches/modules-2)
+          # 不受影响, 重试仍能免去重复下载.
+          # 注意 $TASK 不加引号: 分支路径它是 "assembleDebug testDebugUnitTest" 两个
+          # 任务名, 加引号会被当成单个任务名.
+          e=1
+          for i in 1 2 3; do
+            # timeout 兜底: 09-23 在 242b52be 上实测三次 gradle 无限挂死不再返回——
+          #   #294: attempt 1 jitpack TLS 失败后卡在 attempt 间的 --stop, 70min+ 无进展 (手动取消);
+          #   #295: attempt 1 依赖解析期静默挂死, Build APK 步骤跑满 1h7m22s 后整 job 判 failure;
+          #   #296: attempt 2 BUILD SUCCESSFUL 17m10s 后卡在下方 dry-run, 已编出的 APK
+          #         永远走不到 Collect/Publish (心跳冻结, 与前两次同一签名)。
+          # 到点杀掉转化为可重试的失败 (rc=124), 不让整个 job 无限陪葬。
+          # 45min 上限依据: attempt 2 实测 17m10s; 宿主争抢最坏有 40min+ 先例;
+          # 3 attempts 全超时也仍在 2h 任务硬限内。
+            if timeout 2700 ./gradlew $TASK --stacktrace --no-build-cache --console=plain > build.log 2>&1; then
+              # gradle exit 0 不等于产物落盘: #297 attempt 1 实测构建 exit 0 但全工作区
+              # 无 APK (与 #273 attempt 3 / #280 attempt 2 同型的"成功但产物不落盘",
+              # 历史成功产出 APK 的 run 全部发生在 attempt 2+)。产物缺失按失败处理走
+              # 重试, 而不是把空产物集放行到 Collect—那时才 exit 1 已经太晚。
+              if find . -path ./.git -prune -o -name "*.apk" -print 2>/dev/null | grep -aq .; then
+                e=0; break
+              fi
+              echo "::error::attempt $i 构建 exit 0 但未找到任何 APK, 按失败重试"
+              e=1
+            else
+              e=$?
+            fi
+            echo "$TASK attempt $i failed (rc=$e), retrying..."
+            # 失败即诊断: runner 日志流会丢输出 (#281 的 attempt 2/3 回显整段丢失),
+            # 每个 attempt 失败时立刻把 build.log 关键段回显, 不等最后全败的 Dump 步骤
+            echo "----- build.log 尾 40 行 (attempt $i) -----"
+            tail -40 build.log 2>/dev/null || echo "(无 build.log)"
+            echo "----- What went wrong 段 (attempt $i) -----"
+            awk '/What went wrong/{f=1} f{print; n++} n>40{exit}' build.log 2>/dev/null || echo "(无该段)"
+            # 重试前杀 daemon: 失败的 daemon 可能带伤存活, 复用会再次崩
+            # timeout 兜底 (同 attempt): #294 实测卡死在 attempt 1 失败后的这一步——
+            # --stop 对状态异常的 daemon 永不返回, 重试循环跟着无限卡死。120s 杀不掉
+            # 也放行, 不让一次失败拖死整个 job
+            timeout 120 ./gradlew --stop >/dev/null 2>&1 || true
+            # 并清半成品 accessor: #290 attempt 2 复用 attempt 1 失败留下的
+            # "Generated class ... not found" 根因; Tune 步只清理一次, 重试前必须再清
+            rm -rf .gradle/sweet-dependency/dependencies-accessors .gradle/sweet-property/properties-accessors
+            sleep 10
+          done
+          # 产物清点: run #273/#280 均出现"构建 success 但 app/build/outputs 无 APK",
+          # 这里全量落诊断 (runner 日志流偶有丢失, 故每项都 tee 到独立文件共存档)
+          {
+            echo "=== 产物清点 (pwd=$(pwd)) ==="
+            ls -la app/build/ 2>/dev/null || echo "(无 app/build/ 目录)"
+            # outputs 目录树: #297 的"成功但无 APK"现场只有 app/build 顶层列表,
+            # 看不到 outputs 下到底有没有 apk/ 子目录, 补一棵有界树供定位
+            echo "--- app/build/outputs 目录树 ---"
+            find app/build/outputs -maxdepth 4 2>/dev/null | head -30 || true
+            echo "--- 全工作区 APK 搜索 ---"
+            find . -path ./.git -prune -o -name "*.apk" -print 2>/dev/null | head -10 || true
+            echo "--- build.log BUILD 行 ---"
+            grep -aE "BUILD (SUCCESSFUL|FAILED)" build.log || echo "(无 BUILD 行)"
+            echo "--- build.log 任务清单尾 15 行 ---"
+            grep -a "> Task" build.log | tail -15 || echo "(无任务行)"
+            echo "--- dry-run: assembleRelease 关键任务状态 ---"
+            # timeout 兜底 (同 attempt): #296 实测 BUILD SUCCESSFUL 后卡死在这条 dry-run
+            # (冻结合并前两次的死亡签名), 导致产物清点之后的 Collect/Publish 永远跑不到。
+            # 300s 上限 + 管道末已有 || true: 诊断价值保留, 挂死不再阻断发布链路
+            timeout 300 ./gradlew :app:assembleRelease --dry-run --console=plain 2>&1 | grep -aE ":app:(packageRelease|assembleRelease|minifyReleaseWithR8)" | head -5 || true
+          } 2>&1 | tee build_inventory.txt
+          exit $e
+
+      # 单元测试已并入 Build APK 步骤的同一次 gradle 调用 (分支/PR 路径) —
+      # 拆步 + 改 kotlin.daemon.jvmargs 会令编译任务输入失效被迫重编译, #287/#290
+      # 实测三次 attempt 全死于该形态 (含两个与内存无关的机械性死法);
+      # tag 路径不需要测试.
+
+      - name: Dump build diagnostics
+        # 任何前面步骤失败即执行; build.log 在同一 job 的步骤间保留
+        if: failure()
+        run: |
+          [ -f build.log ] || { echo "(no build.log — 失败发生在构建之前)"; exit 0; }
+          {
+            echo "===== build.log 行数 ====="
+            grep -c "" build.log || true
+            echo "===== What went wrong 后 60 行 ====="
+            grep -q "What went wrong" build.log && awk '/What went wrong/{found=1} found{print; n++} n>60{exit}' build.log || echo "not found"
+            echo "===== daemon 死亡迹象 (OOM/被杀) ====="
+            grep -aE "daemon disappeared|Not enough memory|Killed|OutOfMemoryError|GC overhead limit" build.log | head -20 || echo "not found"
+            echo "===== TaskDependencyResolveException 段 ====="
+            grep -q "TaskDependencyResolveException" build.log && awk '/TaskDependencyResolveException/{found=1} found{print; n++} n>50{exit}' build.log || echo "not found"
+            echo "===== inner Caused by 段 (MissingValue 前后) ====="
+            grep -q "Caused by: org.gradle.api.internal.provider.MissingValueException" build.log && awk '/Caused by: org.gradle.api.internal.provider.MissingValueException/{found=1} found{print; n++} n>60{exit}' build.log || echo "not found"
+            echo "===== javac 编译错误行 ====="
+            grep -aE "\.java:[0-9]+: error" build.log | head -40 || echo "not found"
+            grep -a "error: " build.log | head -20 || true
+            echo "===== 最后 12 个已执行任务 (定位 daemon 死亡点) ====="
+            grep -a "> Task" build.log | tail -12 || echo "not found"
+            echo "===== FAILED 任务 ====="
+            grep -aE "> Task .* FAILED|FAILURE:" build.log | head -20 || echo "not found"
+          } | tee -a "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Build Release APK
+        # 兼容保留: release 已并入上面的 Build APK 步骤 (tag 时编 release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "release APK 已在 Build APK 步骤中编出"
+
+      - name: Collect APKs
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p apks
+          # 全工作区搜索 APK (不假设输出目录): run #273/#280 均出现"构建 success 但
+          # app/build/outputs 无 APK"的怪状, 先扩大搜索面保证发布不因路径假设而漏;
+          # 找不到就响亮失败并打印全树供定位.
+          find . -path ./.git -prune -o -name "*.apk" -print 2>/dev/null | while IFS= read -r f; do
+            cp "$f" apks/ && echo "collected: $f"
+          done
+          echo "=== apks/ 内容 ==="
+          ls -la apks/
+          if [ -z "$(ls -A apks/ 2>/dev/null)" ]; then
+            echo "::error::未收集到任何 APK — 全工作区搜索结果为空"
+            find . -path ./.git -prune -o -type f -name "*.apk" -print 2>/dev/null | head -20
+            echo "--- app/build 顶层 ---"
+            ls -la app/build/ 2>/dev/null | head -20
+            exit 1
+          fi
+
+      # 自动发布 APK 到 Codeberg Release（仅 tag 触发时）
+      # 旧版用 gh + github.token 打 github.com 是 GitHub 遗产, 在 Forgejo 上必然 401 且 gh 缺失 (09-19 改原生 API)
+      - name: Publish to Codeberg Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          API="https://codeberg.org/api/v1/repos/min09577/TiebaLite"
+          AUTH="Authorization: token $TOKEN"
+          # 从 AI_CHANGELOG.md 提取该 tag 的中文段落 (文件/段落缺失则用默认文案)
+          NOTES=""
+          if [ -f AI_CHANGELOG.md ]; then
+            NOTES=$(awk -v tag="$TAG" '
+              index($0, "## " tag " ") == 1 || $0 == "## " tag {found=1; next}
+              found && index($0, "## ") == 1 {exit}
+              found {print}
+            ' AI_CHANGELOG.md)
+            CN=$(printf '%s\n' "$NOTES" | awk 'index($0,"### ")==1 && /中文/{found=1; next} index($0,"### ")==1 {found=0} found')
+            [ -z "$CN" ] && CN="$NOTES"
+          fi
+          [ -n "$CN" ] || CN="TiebaLite $TAG 自动构建发布。"
+          PRERELEASE=true
+          case "$TAG" in *-ai*) ;; *) PRERELEASE=false ;; esac
+          # JSON body 用 python3 单行构造: sed/awk 手工转义反斜杠/引号/中文从未在 Linux 上
+          # 验证过 (Publish 步骤此前从未成功执行), 转义错一个字符整个 release body 就废了.
+          # (多行 python -c 会撞 YAML 块标量缩进, 故压成一行)
+          BODY=$(TAG="$TAG" PRERELEASE="$PRERELEASE" CN="$CN" python3 -c 'import json,os; print(json.dumps({"tag_name":os.environ["TAG"],"name":os.environ["TAG"],"prerelease":os.environ["PRERELEASE"]=="true","draft":False,"body":os.environ["CN"]},ensure_ascii=False))')
+          # 步骤运行在 bash -e -o pipefail 下: 管道里 grep 无匹配会以 1 退出, 命令替换的
+          # 失败直接触发 set -e 杀脚本 (run #273 的 Publish 就这样 1 秒静默退出).
+          # 故所有 (curl|grep|head|cut) 命令替换一律加 || true.
+          # 查同名 release (不存在时 404, grep 无匹配 → 必须容错)
+          RID=$(curl -sL --max-time 60 -H "$AUTH" "$API/releases/tags/$TAG" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2 || true)
+          if [ -n "$RID" ]; then
+            echo "release $RID already exists for $TAG, deleting..."
+            curl -sL --max-time 60 -X DELETE -H "$AUTH" "$API/releases/$RID" || true
+          fi
+          ok=0
+          for i in 1 2 3; do
+            RESP=$(curl -sL --max-time 60 -H "$AUTH" -H "Content-Type: application/json" -d "$BODY" "$API/releases" || true)
+            RID=$(printf '%s' "$RESP" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2 || true)
+            [ -n "$RID" ] && { ok=1; break; }
+            echo "create release failed (attempt $i): $(printf '%s' "$RESP" | head -c 200)"
+            sleep 5
+          done
+          [ $ok -eq 1 ] || { echo "release create failed"; exit 1; }
+          echo "release id=$RID"
+          for f in apks/*.apk; do
+            # 只编了 release 时 debug glob 不会展开, 原样传字面量给 curl 会失败, 需跳过
+            [ -f "$f" ] || continue
+            NAME=$(basename "$f")
+            # 版本名带 +sha 后缀: + 在 URL 查询串里会被解码成空格, 必须百分号编码
+            NAME_ENC=$(printf '%s' "$NAME" | sed 's/+/%2B/g; s/ /%20/g; s/(/%28/g; s/)/%29/g')
+            up_ok=0
+            for i in 1 2 3; do
+              if curl -sL --max-time 600 -H "$AUTH" -F "attachment=@$f" "$API/releases/$RID/assets?name=$NAME_ENC" | grep -q '"id"'; then
+                up_ok=1; break
+              fi
+              echo "upload $NAME failed (attempt $i), retrying..."
+              sleep 5
+            done
+            [ $up_ok -eq 1 ] || { echo "upload $NAME failed"; exit 1; }
+          done
+          echo "Done! $API/releases/tag/$TAG"
