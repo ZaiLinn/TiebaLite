@@ -43,7 +43,6 @@ captures/
 # Keystore files
 # Uncomment the following line if you do not want to check your keystore files in.
 *.jks
-!app/tblite_debug.jks
 
 keystore.properties
 
@@ -70,3 +69,4 @@ artifacts/
 
 # 本地会话交接文档（不入库）
 HANDOFF_CI.md
+.DS_Store

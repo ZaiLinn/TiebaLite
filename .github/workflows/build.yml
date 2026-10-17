@@ -6,7 +6,7 @@ name: Build Release APK
 # 的 API 配额消耗可忽略）。
 #
 # 双宿主分工：GitHub 线 = tag 自动构建 + 自动发布（release 用自动注入的
-# GITHUB_TOKEN，无需任何 Secret——签名 keystore 本就在仓库内）；
+# GITHUB_TOKEN；签名 keystore 从 Secrets 还原，不入库）；
 # Mac 构建机线 = 验证/兜底产出；Codeberg 线保留但暂不使用
 # （其 runner 有 10 分钟硬杀，等基础设施恢复）。
 
@@ -45,12 +45,23 @@ jobs:
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           ls "$SDK/platforms" "$SDK/build-tools"
 
-      # keystore.properties 不入库（.gitignore），CI 现场生成——与 Codeberg 线同款，
-      # 指向仓库内已跟踪的 app/tblite_debug.jks（alias/密码见文件内容）
-      - name: Generate keystore.properties
+      # 签名 keystore 不入库：从 Secrets 还原（KEYSTORE_BASE64 为 jks 的 base64，
+      # 另需 KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD）。缺任一 Secret 直接失败，
+      # 绝不回退 debug 签名发布——否则用户无法覆盖更新。
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          printf 'keystore.file=app/tblite_debug.jks\nkeystore.password=tiebalite\nkeystore.key.alias=tiebalite\nkeystore.key.password=tiebalite\n' > keystore.properties
-          cat keystore.properties
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::missing secret $v"; exit 1; fi
+          done
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > keystore/release.jks
+          printf 'keystore.file=keystore/release.jks\nkeystore.password=%s\nkeystore.key.alias=%s\nkeystore.key.password=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 
       # sweet-dependency 配置把官方源覆盖成了 aliyun 国内镜像（为 Codeberg/国内网络加的），
       # GitHub runner 在海外，拉镜像超时/不可用导致插件标记 artifact 解析失败
@@ -118,4 +129,4 @@ jobs:
           else
             gh release create "$TAG" "$APK" --title "$TAG" --notes-file notes.md --latest $PRERELEASE
           fi
-          echo "published: https://github.com/qaqmin09577/TiebaLite/releases/tag/$TAG"
+          echo "published: https://github.com/${{ github.repository }}/releases/tag/$TAG"

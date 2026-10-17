@@ -125,9 +125,25 @@ jobs:
           rm -f /tmp/ctl.zip
           rm -rf /var/lib/apt/lists/*
 
-      - name: Generate keystore.properties
+      # 签名 keystore 不入库：有 Secrets 时还原；没有时分支/PR 的 debug 构建用 debug 签名，
+      # tag（发版）构建直接失败，绝不用 debug 签名发布。
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          printf 'keystore.file=app/tblite_debug.jks\nkeystore.password=tiebalite\nkeystore.key.alias=tiebalite\nkeystore.key.password=tiebalite\n' > keystore.properties
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            case "$GITHUB_REF" in
+              refs/tags/*) echo "missing signing secrets for tag build"; exit 1;;
+              *) echo "no signing secrets, debug signing only"; exit 0;;
+            esac
+          fi
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > keystore/release.jks
+          printf 'keystore.file=keystore/release.jks\nkeystore.password=%s\nkeystore.key.alias=%s\nkeystore.key.password=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 
       - name: Tune Gradle for Codeberg runner
         run: |
