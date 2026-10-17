@@ -106,23 +106,29 @@ fun NotificationsListPage(
             ) {
                 if (data.isEmpty() && !isRefreshing) {
                     item {
-                        TipScreen(
-                            title = { Text(text = stringResource(id = R.string.title_empty)) },
-                            image = {
-                                val composition by rememberLottieComposition(
-                                    LottieCompositionSpec.RawRes(R.raw.lottie_empty_box)
-                                )
-                                LottieAnimation(
-                                    composition = composition,
-                                    iterations = LottieConstants.IterateForever,
-                                    modifier = Modifier
-                                        .padding(vertical = 16.dp)
-                                        .fillMaxWidth()
-                                        .aspectRatio(2.5f)
-                                )
-                            },
-                            scrollable = false,
-                        )
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TipScreen(
+                                title = { Text(text = stringResource(id = R.string.title_empty)) },
+                                image = {
+                                    val composition by rememberLottieComposition(
+                                        LottieCompositionSpec.RawRes(R.raw.lottie_empty_box)
+                                    )
+                                    LottieAnimation(
+                                        composition = composition,
+                                        iterations = LottieConstants.IterateForever,
+                                        modifier = Modifier
+                                            .padding(vertical = 16.dp)
+                                            .fillMaxWidth()
+                                            .aspectRatio(2.5f)
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                scrollable = false,
+                            )
+                        }
                     }
                 }
                 items(

@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import com.huanchengfly.tieba.post.utils.PickMediasRequest
 import kotlinx.coroutines.CoroutineScope
@@ -93,7 +92,6 @@ inline fun <reified Event : UiEvent> CoroutineScope.onGlobalEvent(
 
 @Composable
 inline fun <reified Event : UiEvent> onGlobalEvent(
-    coroutineScope: CoroutineScope = rememberCoroutineScope(),
     noinline filter: (Event) -> Boolean = { true },
     noinline listener: suspend (Event) -> Unit,
 ) {

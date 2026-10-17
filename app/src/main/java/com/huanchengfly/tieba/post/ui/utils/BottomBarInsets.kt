@@ -6,44 +6,28 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.safeGestures
-import androidx.compose.foundation.layout.union
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 /**
- * 手势导航热区兜底高度（24-32dp 手势条热区的中间值）。
+ * 取底部安全区高度：仅 navigationBars 底部值。
  *
- * 部分国产 ROM（如 ColorOS 16）在手势导航模式下，
- * navigationBars 与 safeGestures 两个 inset 可能同时上报 0，
- * 导致底栏内容被手势热区穿透。此时用该值兜底。
- */
-private val FallbackGestureHotspotHeight = 28.dp
-
-/**
- * 取底部安全区高度：navigationBars ∪ safeGestures，
- * 两者均为 0 时兜底 [FallbackGestureHotspotHeight]。
+ * 此前取 navigationBars ∪ safeGestures 并在两者均为 0 时兜底 28dp，
+ * 手势导航下 safeGestures 普遍高于导航栏，底栏下方因此多出大块空白，已回退。
  */
 @Composable
 fun bottomBarInsetsHeight(): Dp {
-    val insets = WindowInsets.navigationBars.union(WindowInsets.safeGestures)
     val density = LocalDensity.current
-    val bottomPx = insets.getBottom(density)
-    return if (bottomPx > 0) {
-        with(density) { bottomPx.toDp() }
-    } else {
-        FallbackGestureHotspotHeight
-    }
+    val bottomPx = WindowInsets.navigationBars.getBottom(density)
+    return with(density) { bottomPx.toDp() }
 }
 
 /**
- * 底栏手势热区避让：高度取 (navigationBars ∪ safeGestures) 底部值，
- * 值为 0 时兜底 [FallbackGestureHotspotHeight]；
+ * 底栏手势热区避让：高度取 [bottomBarInsetsHeight]，
  * 并在该区域内消费点击，避免触摸穿透到手势热区之下的内容。
  */
 fun Modifier.bottomBarInsetsPadding(): Modifier = composed {
