@@ -30,7 +30,6 @@
 到 [Releases](https://github.com/ZaiLinn/TiebaLite/releases/latest) 下载最新 APK。安装后可在「关于」页检查更新，应用内更新只检查本仓库的发布。
 
 - 包名：`com.zailinn.tiebalite`，可以和原版贴吧 Lite 同时安装。
-- 签名：ZaiLinn 私有证书。从原版或本仓库早期测试包切换过来需要先卸载，登录和设置不会迁移。
 
 ## ✨ 功能
 
@@ -51,14 +50,7 @@
 
 ## 🆕 本分支的改动
 
-完整记录见 [AI_CHANGELOG.md](AI_CHANGELOG.md)。v4.0.61 相对 v4.0.60：
-
-- 包名改为 `com.zailinn.tiebalite`，更换私有签名证书
-- 应用内更新只检查 ZaiLinn/TiebaLite，移除指向上游的 Codeberg 渠道
-- 修复底栏下方空白过多、通知页空状态未居中
-- 修复帖子页跳页输入为空时闪退、删除已不在列表中的楼层时崩溃、收藏进度更新可能被中途取消
-- 设置项同步读取改为内存快照；后台写入与全局事件不再使用 `GlobalScope`
-- 拆分 `ThreadPage` 与贴吧 API 实现，补充单元测试
+完整记录见 [AI_CHANGELOG.md](AI_CHANGELOG.md)。 Powered by opus-5.5
 
 ## 💡 使用贴士
 
@@ -120,7 +112,7 @@ CI 从仓库 Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`
 
 ## 👨‍💻 致谢
 
-- 原作者 **[HuanCheng65](https://github.com/HuanCheng65)**：原创开发并维护本项目至 2024 年归档，所有原始代码与架构设计归原作者所有。
+- **[HuanCheng65](https://github.com/HuanCheng65)**：原创开发并维护本项目至 2024 年归档，所有原始代码与架构设计归原作者所有。
 - **qaqmin**：v4.0.0 至 v4.0.60 的修改版本。
 - **[ForbidAd4TieBa](https://github.com/aikavvak12una/ForbidAd4TieBa)**:部分功能参考
 - 详见 [CREDITS.md](CREDITS.md)。
