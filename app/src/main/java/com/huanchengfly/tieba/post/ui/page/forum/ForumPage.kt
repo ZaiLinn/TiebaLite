@@ -329,7 +329,8 @@ private fun ForumHeader(
 private fun shareForum(context: Context, forumName: String) {
     TiebaUtil.shareText(
         context,
-        "https://tieba.baidu.com/f?kw=$forumName",
+        // 吧名可能含 &、#、空格等字符，不编码会截断或改写链接
+        "https://tieba.baidu.com/f?kw=${Uri.encode(forumName)}",
         context.getString(R.string.title_forum, forumName)
     )
 }

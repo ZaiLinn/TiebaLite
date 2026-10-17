@@ -73,6 +73,7 @@ import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.DialogUtil
 import com.huanchengfly.tieba.post.utils.PermissionUtils
 import com.huanchengfly.tieba.post.utils.PermissionUtils.PermissionData
+import com.huanchengfly.tieba.post.utils.ShareLinkCleaner
 import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import com.huanchengfly.tieba.post.utils.compose.launchActivityForResult
@@ -188,7 +189,7 @@ fun WebViewPage(
                             DropdownMenuItem(
                                 onClick = {
                                     val url = webViewState.webView?.url ?: initialUrl
-                                    TiebaUtil.copyText(context, url)
+                                    TiebaUtil.copyText(context, ShareLinkCleaner.clean(url))
                                     dismiss()
                                 }
                             ) {
