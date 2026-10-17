@@ -43,7 +43,7 @@ wire {
 android {
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.huanchengfly.tieba.post"
+        applicationId = "com.zailinn.tiebalite"
         minSdk = 21
         //noinspection OldTargetApi
         targetSdk = 36

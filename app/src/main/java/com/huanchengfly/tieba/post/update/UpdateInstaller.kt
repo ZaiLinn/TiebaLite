@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import android.util.Log
+import com.huanchengfly.tieba.post.BuildConfig
 import java.io.File
 
 /**
@@ -17,7 +18,7 @@ import java.io.File
 object UpdateInstaller {
 
     private const val TAG = "UpdateInstaller"
-    private const val AUTHORITY = "com.huanchengfly.tieba.post.share.FileProvider"
+    private const val AUTHORITY = "${BuildConfig.APPLICATION_ID}.share.FileProvider"
 
     /**
      * 尝试安装 APK。
