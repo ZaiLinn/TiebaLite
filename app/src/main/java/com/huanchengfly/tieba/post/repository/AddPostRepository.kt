@@ -1,7 +1,10 @@
 package com.huanchengfly.tieba.post.repository
 
 import com.huanchengfly.tieba.post.api.TiebaApi
+import com.huanchengfly.tieba.post.api.models.CommonResponse
 import com.huanchengfly.tieba.post.api.models.protos.addPost.AddPostResponse
+import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaApiException
+import com.huanchengfly.tieba.post.api.retrofit.interceptors.ProtoFailureResponseInterceptor
 import com.huanchengfly.tieba.post.arch.GlobalEvent
 import com.huanchengfly.tieba.post.arch.emitGlobalEventSuspend
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +20,10 @@ object AddPostRepository {
         nameShow: String? = null,
         postId: Long? = null,
         subPostId: Long? = null,
-        replyUserId: Long? = null
+        replyUserId: Long? = null,
+        vcode: String? = null,
+        vcodeMd5: String? = null,
+        vcodeType: String? = null,
     ): Flow<AddPostResponse> =
         TiebaApi.getInstance()
             .addPostFlow(
@@ -29,9 +35,19 @@ object AddPostRepository {
                 nameShow,
                 postId?.toString(),
                 subPostId?.toString(),
-                replyUserId?.toString()
+                replyUserId?.toString(),
+                vcode,
+                vcodeMd5,
+                vcodeType,
             )
             .onEach {
+                val errorCode = it.error?.error_code ?: 0
+                if (errorCode in ProtoFailureResponseInterceptor.VCODE_ERROR_CODES) {
+                    val message = it.error?.error_msg.orEmpty().ifEmpty { "需要验证码" }
+                    val challenge = VcodeChallenge.from(it.data_?.info)
+                        ?: throw TiebaApiException(CommonResponse(errorCode, message))
+                    throw NeedVcodeException(challenge, message)
+                }
                 val newPostId = checkNotNull(it.data_?.pid?.toLongOrNull())
                 if (postId != null) {
                     emitGlobalEventSuspend(

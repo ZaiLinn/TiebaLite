@@ -306,6 +306,27 @@ internal fun ReplyPageContent(
         LitePal.deleteAllAsync<Draft>("hash = ?", hash).listen { onBack() }
     }
 
+    // 服务器要求验证码时弹窗；完成后带上验证结果重发同一条回复
+    var pendingVcode by remember { mutableStateOf<ReplyUiEvent.NeedVcode?>(null) }
+    viewModel.onEvent<ReplyUiEvent.NeedVcode> { pendingVcode = it }
+    pendingVcode?.let { request ->
+        VcodeDialog(
+            challenge = request.challenge,
+            message = request.message,
+            onResult = { vcode ->
+                pendingVcode = null
+                viewModel.send(
+                    request.retry.copy(
+                        vcode = vcode,
+                        vcodeMd5 = request.challenge.md5,
+                        vcodeType = request.challenge.type,
+                    )
+                )
+            },
+            onDismiss = { pendingVcode = null },
+        )
+    }
+
     var waitUploadSuccessToSend by remember { mutableStateOf(false) }
     viewModel.onEvent<ReplyUiEvent.UploadSuccess> {
         if (waitUploadSuccessToSend) {

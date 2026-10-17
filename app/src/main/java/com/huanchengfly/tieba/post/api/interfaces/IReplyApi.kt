@@ -222,6 +222,9 @@ interface IReplyApi {
         nameShow: String? = null,
         postId: String? = null,
         subPostId: String? = null,
-        replyUserId: String? = null
+        replyUserId: String? = null,
+        vcode: String? = null,
+        vcodeMd5: String? = null,
+        vcodeType: String? = null,
     ): Flow<AddPostResponse>
 }

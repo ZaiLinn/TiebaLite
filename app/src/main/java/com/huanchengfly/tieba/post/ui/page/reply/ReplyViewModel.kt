@@ -19,6 +19,8 @@ import com.huanchengfly.tieba.post.arch.UiIntent
 import com.huanchengfly.tieba.post.arch.UiState
 import com.huanchengfly.tieba.post.components.ImageUploader
 import com.huanchengfly.tieba.post.repository.AddPostRepository
+import com.huanchengfly.tieba.post.repository.NeedVcodeException
+import com.huanchengfly.tieba.post.repository.VcodeChallenge
 import com.huanchengfly.tieba.post.utils.FileUtil
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -59,6 +61,12 @@ class ReplyViewModel @Inject constructor() :
         )
 
         is ReplyPartialChange.UploadImages.Success -> ReplyUiEvent.UploadSuccess(partialChange.resultList)
+
+        is ReplyPartialChange.Send.NeedVcode -> ReplyUiEvent.NeedVcode(
+            partialChange.challenge,
+            partialChange.message,
+            partialChange.retry
+        )
 
         is ReplyPartialChange.Send.Failure -> CommonUiEvent.Toast(
             App.INSTANCE.getString(
@@ -107,7 +115,10 @@ class ReplyViewModel @Inject constructor() :
                     tbs,
                     postId = postId,
                     subPostId = subPostId,
-                    replyUserId = replyUserId
+                    replyUserId = replyUserId,
+                    vcode = vcode,
+                    vcodeMd5 = vcodeMd5,
+                    vcodeType = vcodeType,
                 )
                 .map<AddPostResponse, ReplyPartialChange.Send> {
                     if (it.data_ == null) throw TiebaUnknownException
@@ -119,6 +130,12 @@ class ReplyViewModel @Inject constructor() :
                 }
                 .onStart { emit(ReplyPartialChange.Send.Start) }
                 .catch {
+                    if (it is NeedVcodeException) {
+                        Log.i("ReplyViewModel", "need vcode, type=${it.challenge.type}")
+                        // 带上本次的回帖内容，验证完成后原样重发并附上验证结果
+                        emit(ReplyPartialChange.Send.NeedVcode(it.challenge, it.message.orEmpty(), this@producePartialChange))
+                        return@catch
+                    }
                     Log.i("ReplyViewModel", "failure: ${it.message}")
                     it.printStackTrace()
                     emit(ReplyPartialChange.Send.Failure(it.getErrorCode(), it.getErrorMessage()))
@@ -180,6 +197,9 @@ sealed interface ReplyUiIntent : UiIntent {
         val postId: Long? = null,
         val subPostId: Long? = null,
         val replyUserId: Long? = null,
+        val vcode: String? = null,
+        val vcodeMd5: String? = null,
+        val vcodeType: String? = null,
     ) : ReplyUiIntent
 
     data class SwitchPanel(val panelType: ReplyPanelType) : ReplyUiIntent
@@ -219,10 +239,17 @@ sealed interface ReplyPartialChange : PartialChange<ReplyUiState> {
                 is Start -> oldState.copy(isSending = true)
                 is Success -> oldState.copy(isSending = false, replySuccess = true)
                 is Failure -> oldState.copy(isSending = false, replySuccess = false)
+                is NeedVcode -> oldState.copy(isSending = false, replySuccess = false)
             }
         }
 
         object Start : Send()
+
+        data class NeedVcode(
+            val challenge: VcodeChallenge,
+            val message: String,
+            val retry: ReplyUiIntent.Send,
+        ) : Send()
 
         data class Success(
             val threadId: String,
@@ -275,5 +302,12 @@ sealed interface ReplyUiEvent : UiEvent {
         val threadId: String,
         val postId: String,
         val expInc: String
+    ) : ReplyUiEvent
+
+    /** 需要完成验证码，完成后用验证结果填充 [retry] 再发送 */
+    data class NeedVcode(
+        val challenge: VcodeChallenge,
+        val message: String,
+        val retry: ReplyUiIntent.Send,
     ) : ReplyUiEvent
 }

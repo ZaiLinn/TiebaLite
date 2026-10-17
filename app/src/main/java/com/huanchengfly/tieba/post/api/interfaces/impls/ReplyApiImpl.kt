@@ -211,7 +211,10 @@ object ReplyApiImpl : IReplyApi {
         nameShow: String?,
         postId: String?,
         subPostId: String?,
-        replyUserId: String?
+        replyUserId: String?,
+        vcode: String?,
+        vcodeMd5: String?,
+        vcodeType: String?,
     ): Flow<AddPostResponse> {
         return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_POST_API
             .addPostFlow(
@@ -251,6 +254,9 @@ object ReplyApiImpl : IReplyApi {
                             tid = threadId,
                             v_fid = "".takeIf { postId.isNullOrEmpty() },
                             v_fname = "".takeIf { postId.isNullOrEmpty() },
+                            vcode = vcode.orEmpty(),
+                            vcode_md5 = vcodeMd5.orEmpty(),
+                            vcode_type = vcodeType.orEmpty(),
                             vcode_tag = "12",
                         )
                     ),
