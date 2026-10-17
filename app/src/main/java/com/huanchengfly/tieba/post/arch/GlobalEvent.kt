@@ -68,6 +68,14 @@ fun CoroutineScope.emitGlobalEvent(event: UiEvent) {
     }
 }
 
+/**
+ * 非挂起上下文发事件。总线 replay=0、extraBufferCapacity=2、DROP_OLDEST，
+ * tryEmit 永远成功不挂起，无需为此启动协程。
+ */
+fun emitGlobalEventNow(event: UiEvent) {
+    globalEventSharedFlow.tryEmit(event)
+}
+
 suspend fun emitGlobalEventSuspend(event: UiEvent) {
     globalEventSharedFlow.emit(event)
 }

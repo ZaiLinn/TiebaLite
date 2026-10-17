@@ -4,8 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import com.huanchengfly.tieba.post.arch.GlobalEvent
-import com.huanchengfly.tieba.post.arch.emitGlobalEvent
-import kotlinx.coroutines.GlobalScope
+import com.huanchengfly.tieba.post.arch.emitGlobalEventNow
 
 data class LaunchActivityRequest(
     val requesterId: String,
@@ -22,7 +21,7 @@ fun launchActivityForResult(
     requesterId: String,
     intent: Intent,
 ) {
-    GlobalScope.emitGlobalEvent(GlobalEvent.StartActivityForResult(requesterId, intent))
+    emitGlobalEventNow(GlobalEvent.StartActivityForResult(requesterId, intent))
 }
 
 class LaunchActivityForResult : ActivityResultContract<LaunchActivityRequest, ActivityResult>() {

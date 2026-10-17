@@ -59,6 +59,8 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
         if (intent?.action == ACTION_START_SIGN) {
             val loginInfo = AccountUtil.getLoginInfo()
             if (loginInfo != null) {
+                // onHandleIntent 跑在 IntentService 的工作线程上，返回即 stopSelf + onDestroy
+                // （会取消本 Service 的作用域）。这里必须同步等签到跑完，runBlocking 是有意为之。
                 runBlocking {
                     SingleAccountSigner(
                         this@OKSignService,
