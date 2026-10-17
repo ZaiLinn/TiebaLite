@@ -71,6 +71,26 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var blockVideo by DataStoreDelegates.boolean(defaultValue = false)
 
+    var blockVoteThread by DataStoreDelegates.boolean(defaultValue = false)
+
+    var blockGoodsThread by DataStoreDelegates.boolean(defaultValue = false)
+
+    var blockAppPromotionThread by DataStoreDelegates.boolean(defaultValue = false)
+
+    var blockLotteryThread by DataStoreDelegates.boolean(defaultValue = false)
+
+    var blockScoreThread by DataStoreDelegates.boolean(defaultValue = false)
+
+    val threadTypeFilterOptions: ThreadTypeFilter.Options
+        get() = ThreadTypeFilter.Options(
+            blockVideo = blockVideo,
+            blockVote = blockVoteThread,
+            blockGoods = blockGoodsThread,
+            blockAppPromotion = blockAppPromotionThread,
+            blockLottery = blockLotteryThread,
+            blockScore = blockScoreThread,
+        )
+
     var checkCIUpdate by DataStoreDelegates.boolean(
         defaultValue = false
     )

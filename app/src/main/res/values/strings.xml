@@ -446,6 +446,16 @@
     <string name="title_block_list">屏蔽词管理</string>
     <string name="settings_hide_blocked_content">彻底隐藏被屏蔽的内容</string>
     <string name="settings_block_video_summary">隐藏动态页面和吧页面的所有视频贴</string>
+    <string name="settings_block_vote_thread">不看投票贴</string>
+    <string name="settings_block_vote_thread_summary">隐藏推荐和吧页面中带投票的帖子</string>
+    <string name="settings_block_goods_thread">不看带货贴</string>
+    <string name="settings_block_goods_thread_summary">隐藏推荐和吧页面中挂了商品的帖子</string>
+    <string name="settings_block_app_promotion_thread">不看应用/游戏推广贴</string>
+    <string name="settings_block_app_promotion_thread_summary">隐藏推荐和吧页面中挂了应用或游戏下载、预约卡片的帖子</string>
+    <string name="settings_block_lottery_thread">不看抽奖贴</string>
+    <string name="settings_block_lottery_thread_summary">隐藏推荐和吧页面中的抽奖活动帖</string>
+    <string name="settings_block_score_thread">不看打分贴</string>
+    <string name="settings_block_score_thread_summary">隐藏推荐和吧页面中的打分帖</string>
     <string name="desc_image">图片</string>
     <string name="desc_add_image">添加图片</string>
     <string name="toast_upload_image_failed">上传图片失败 %s</string>

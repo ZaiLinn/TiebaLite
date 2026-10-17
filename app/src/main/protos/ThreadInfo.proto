@@ -5,6 +5,9 @@ package tieba;
 option java_package = "com.huanchengfly.tieba.post.api.models.protos";
 
 import "AdInfo.proto";
+import "PbGoodsInfo.proto";
+import "PollInfo.proto";
+import "Item.proto";
 import "Abstract.proto";
 import "Agree.proto";
 import "AlaLiveInfo.proto";
@@ -70,4 +73,10 @@ message ThreadInfo {
   string tabName = 176;
   int32 isDeleted = 181;
   int32 hotNum = 182;
+  // 以下字段编号来自 n0099/tbclient.protobuf，用于推荐流 / 吧页面按帖子类型过滤
+  int32 thread_type = 26;
+  PollInfo poll_info = 74;
+  Item item = 179;
+  repeated PbGoodsInfo pb_goods_info = 183;
+  string is_tiebaplus_ad = 193;
 }

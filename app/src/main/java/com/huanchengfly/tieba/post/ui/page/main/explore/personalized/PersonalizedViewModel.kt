@@ -22,6 +22,7 @@ import com.huanchengfly.tieba.post.models.DislikeBean
 import com.huanchengfly.tieba.post.repository.PersonalizedRepository
 import com.huanchengfly.tieba.post.ui.models.ThreadItemData
 import com.huanchengfly.tieba.post.ui.models.distinctById
+import com.huanchengfly.tieba.post.utils.ThreadTypeFilter
 import com.huanchengfly.tieba.post.utils.appPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
@@ -71,11 +72,9 @@ class PersonalizedViewModel @Inject constructor() :
             PersonalizedRepository
                 .personalizedFlow(1, 1)
                 .map<PersonalizedResponse, PersonalizedPartialChange.Refresh> { response ->
+                    val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                     val data = response.toData()
-                        .filter {
-                            !App.INSTANCE.appPreferences.blockVideo || it.get { videoInfo } == null
-                        }
-                        .filter { it.get { ala_info } == null }
+                        .filterNot { ThreadTypeFilter.shouldHide(it.get(), filterOptions) }
                     val threadPersonalizedData = response.data_?.thread_personalized ?: emptyList()
                     PersonalizedPartialChange.Refresh.Success(
                         data = data.map { thread ->
@@ -93,11 +92,9 @@ class PersonalizedViewModel @Inject constructor() :
             PersonalizedRepository
                 .personalizedFlow(2, page)
                 .map<PersonalizedResponse, PersonalizedPartialChange.LoadMore> { response ->
+                    val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                     val data = response.toData()
-                        .filter {
-                            !App.INSTANCE.appPreferences.blockVideo || it.get { videoInfo } == null
-                        }
-                        .filter { it.get { ala_info } == null }
+                        .filterNot { ThreadTypeFilter.shouldHide(it.get(), filterOptions) }
                     val threadPersonalizedData = response.data_?.thread_personalized ?: emptyList()
                     PersonalizedPartialChange.LoadMore.Success(
                         currentPage = page,

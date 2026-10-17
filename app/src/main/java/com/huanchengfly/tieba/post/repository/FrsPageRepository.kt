@@ -5,6 +5,7 @@ import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.protos.frsPage.FrsPageResponse
 import com.huanchengfly.tieba.post.api.models.protos.threadList.ThreadListResponse
 import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaUnknownException
+import com.huanchengfly.tieba.post.utils.ThreadTypeFilter
 import com.huanchengfly.tieba.post.utils.appPreferences
 import com.huanchengfly.tieba.post.utils.AppCache
 import kotlinx.coroutines.flow.Flow
@@ -37,12 +38,12 @@ object FrsPageRepository {
             .map { response ->
                 if (response.data_ == null) throw TiebaUnknownException
                 val userList = response.data_.user_list
+                val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                 val threadList = response.data_.thread_list
                     .map { threadInfo ->
                         threadInfo.copy(author = userList.find { it.id == threadInfo.authorId })
                     }
-                    .filter { !App.INSTANCE.appPreferences.blockVideo || it.videoInfo == null }
-                    .filter { it.ala_info == null } // 去他妈的直播
+                    .filterNot { ThreadTypeFilter.shouldHide(it, filterOptions) }
                 response.copy(data_ = response.data_.copy(thread_list = threadList))
             }
             .onEach { response ->
@@ -66,12 +67,12 @@ object FrsPageRepository {
             .map { response ->
                 if (response.data_ == null) throw TiebaUnknownException
                 val userList = response.data_.user_list
+                val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                 val threadList = response.data_.thread_list
                     .map { threadInfo ->
                         threadInfo.copy(author = userList.find { it.id == threadInfo.authorId })
                     }
-                    .filter { !App.INSTANCE.appPreferences.blockVideo || it.videoInfo == null }
-                    .filter { it.ala_info == null } // 去他妈的直播
+                    .filterNot { ThreadTypeFilter.shouldHide(it, filterOptions) }
                 response.copy(data_ = response.data_.copy(thread_list = threadList))
             }
 }

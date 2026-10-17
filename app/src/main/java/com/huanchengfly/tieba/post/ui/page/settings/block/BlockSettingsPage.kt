@@ -9,6 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.HideSource
 import androidx.compose.material.icons.outlined.VideocamOff
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.Redeem
+import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.HowToVote
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -98,6 +103,91 @@ fun BlockSettingsPage(
                         LeadingIcon {
                             AvatarIcon(
                                 icon = Icons.Outlined.VideocamOff,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "blockVoteThread",
+                    title = stringResource(id = R.string.settings_block_vote_thread),
+                    summary = stringResource(id = R.string.settings_block_vote_thread_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.HowToVote,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "blockGoodsThread",
+                    title = stringResource(id = R.string.settings_block_goods_thread),
+                    summary = stringResource(id = R.string.settings_block_goods_thread_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.ShoppingBag,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "blockAppPromotionThread",
+                    title = stringResource(id = R.string.settings_block_app_promotion_thread),
+                    summary = stringResource(id = R.string.settings_block_app_promotion_thread_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.SportsEsports,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "blockLotteryThread",
+                    title = stringResource(id = R.string.settings_block_lottery_thread),
+                    summary = stringResource(id = R.string.settings_block_lottery_thread_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.Redeem,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "blockScoreThread",
+                    title = stringResource(id = R.string.settings_block_score_thread),
+                    summary = stringResource(id = R.string.settings_block_score_thread_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.StarOutline,
                                 size = Sizes.Small,
                                 contentDescription = null,
                             )
