@@ -156,14 +156,6 @@ fun PersonalizedPage(
             showRefreshTip = false
         }
     }
-//    if (lazyListState.isScrollInProgress) {
-//        DisposableEffect(Unit) {
-//            PauseLoadWhenScrollingDrawableDecodeInterceptor.scrolling = true
-//            onDispose {
-//                PauseLoadWhenScrollingDrawableDecodeInterceptor.scrolling = false
-//            }
-//        }
-//    }
     StateScreen(
         modifier = Modifier.fillMaxSize(),
         isEmpty = isEmpty,

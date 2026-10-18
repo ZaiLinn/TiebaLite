@@ -2,6 +2,7 @@ package com.huanchengfly.tieba.post.ui.widgets.compose
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.Animatable as AnimatableDrawable
 import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -24,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +47,7 @@ import com.github.panpf.sketch.compose.rememberAsyncImageState
 import com.github.panpf.sketch.request.Depth
 import com.github.panpf.sketch.request.DisplayRequest
 import com.github.panpf.sketch.request.DisplayResult
+import com.github.panpf.sketch.request.pauseLoadWhenScrolling
 import com.github.panpf.sketch.stateimage.ThumbnailMemoryCacheStateImage
 import com.github.panpf.sketch.transform.MaskTransformation
 import com.huanchengfly.tieba.post.App
@@ -58,6 +61,7 @@ import com.huanchengfly.tieba.post.ui.page.photoview.PhotoViewActivity.Companion
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import com.huanchengfly.tieba.post.utils.NetworkUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
+import kotlinx.coroutines.flow.combine
 
 fun shouldLoadImage(context: Context, skipNetworkCheck: Boolean): Boolean {
     val imageLoadSettings =
@@ -248,6 +252,7 @@ fun NetworkImage(
         DisplayRequest(context, imageUri) {
             placeholder(ImageUtil.getPlaceHolder(context, 0))
             crossfade()
+            pauseLoadWhenScrolling()
             if (!shouldLoad) {
                 depth(Depth.LOCAL)
             }
@@ -265,6 +270,22 @@ fun NetworkImage(
                 else 0f
             }
         }
+    }
+
+    // 惯性滑动时暂停动图，停下后继续；只恢复由这里暂停的，不打扰动图自己的播放状态
+    LaunchedEffect(state) {
+        var pausedByFling: AnimatableDrawable? = null
+        snapshotFlow { (state.result as? DisplayResult.Success)?.drawable as? AnimatableDrawable }
+            .combine(ListFling.flinging) { drawable, flinging -> drawable to flinging }
+            .collect { (drawable, flinging) ->
+                if (flinging && drawable != null && drawable.isRunning) {
+                    drawable.stop()
+                    pausedByFling = drawable
+                } else if (!flinging) {
+                    pausedByFling?.start()
+                    pausedByFling = null
+                }
+            }
     }
 
     var isLongPressing by remember { mutableStateOf(false) }
