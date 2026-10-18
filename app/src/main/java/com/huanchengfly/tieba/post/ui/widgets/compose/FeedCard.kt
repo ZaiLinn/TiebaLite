@@ -497,6 +497,8 @@ private fun ThreadMedia(
                         VideoPlayer(
                             videoUrl = videoInfo.get { videoUrl },
                             thumbnailUrl = videoInfo.get { thumbnailUrl },
+                            videoWidth = videoInfo.get { thumbnailWidth },
+                            videoHeight = videoInfo.get { thumbnailHeight },
                             modifier = Modifier
                                 .fillMaxWidth(singleMediaFraction)
                                 .aspectRatio(aspectRatio)
@@ -979,6 +981,8 @@ fun VideoPlayer(
     thumbnailUrl: String,
     modifier: Modifier = Modifier,
     title: String = "",
+    videoWidth: Int = 0,
+    videoHeight: Int = 0,
 ) {
     val context = LocalContext.current
     val systemUiController = rememberSystemUiController()
@@ -990,12 +994,16 @@ fun VideoPlayer(
                 Log.i("VideoPlayer", "onFullScreenModeChanged $isFullScreen")
                 systemUiController.isStatusBarVisible = !isFullScreen
                 systemUiController.isNavigationBarVisible = !isFullScreen
-                if (isFullScreen) {
-                    context.findActivity()?.requestedOrientation =
+                context.findActivity()?.requestedOrientation = if (isFullScreen) {
+                    // 竖屏视频用竖屏全屏，横屏视频用横屏全屏；拿不到尺寸按横屏
+                    if (videoWidth > 0 && videoHeight > videoWidth) {
+                        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    } else {
                         ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    }
                 } else {
-                    context.findActivity()?.requestedOrientation =
-                        ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    // 退出全屏锁回竖屏，避免手机横持时停在横屏（原来用 UNSPECIFIED）
+                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 }
             }
         }
