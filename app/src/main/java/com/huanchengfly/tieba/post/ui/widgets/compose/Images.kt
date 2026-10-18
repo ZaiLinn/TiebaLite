@@ -233,6 +233,7 @@ fun NetworkImage(
     contentScale: ContentScale = ContentScale.Fit,
     skipNetworkCheck: Boolean = false,
     enablePreview: Boolean = false,
+    alignment: Alignment = Alignment.Center,
 ) {
     val context = LocalContext.current
 
@@ -346,6 +347,7 @@ fun NetworkImage(
                 ),
             contentDescription = contentDescription,
             contentScale = contentScale,
+            alignment = alignment,
             state = state,
         )
     }

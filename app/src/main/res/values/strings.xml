@@ -423,6 +423,7 @@
     <string name="tip_reply_thread">评论一番</string>
     <string name="btn_load_previous">查看上一页</string>
     <string name="desc_video">视频</string>
+    <string name="tip_long_pic">长图</string>
     <string name="tag_video">[视频]</string>
     <string name="message_add_favorite_success">已收藏至第 %d 楼</string>
     <string name="message_remove_favorite_success">取消收藏成功</string>
