@@ -280,50 +280,49 @@ fun NetworkImage(
         )
     }
 
+    val onTapImage = {
+        if (!shouldLoad) {
+            shouldLoad = true
+        } else if (photoViewData != null) {
+            context.goToActivity<PhotoViewActivity> {
+                putExtra(EXTRA_PHOTO_VIEW_DATA, photoViewData)
+            }
+        }
+    }
     Box(
         modifier = Modifier
-            .pointerInput(enableClick) {
-                if (enableClick) {
+            .pointerInput(enableClick, enablePreview) {
+                // 长按预览时才需要 onLongPress/onPress；列表里绝大多数图只需点击
+                if (enablePreview) {
                     detectTapGestures(
-                        onLongPress = {
-                            isLongPressing = true
-                        },
+                        onLongPress = { isLongPressing = true },
                         onPress = {
                             tryAwaitRelease()
                             isLongPressing = false
                         },
-                        onTap = {
-                            if (!shouldLoad) {
-                                shouldLoad = true
-                            } else if (photoViewData != null) {
-                                context.goToActivity<PhotoViewActivity> {
-                                    putExtra(
-                                        EXTRA_PHOTO_VIEW_DATA,
-                                        photoViewData
-                                    )
-                                }
-                            }
-                        }
+                        onTap = { if (enableClick) onTapImage() },
                     )
-                }
-            }
-            .pointerInput(Unit) {
-                detectDragGesturesAfterLongPress { change, dragAmount ->
-                    Log.i("NetworkImage", "dragAmount: $dragAmount")
+                } else if (enableClick) {
+                    detectTapGestures(onTap = { onTapImage() })
                 }
             }
             .then(modifier)
     ) {
         AsyncImage(
             request = request,
+            // onGloballyPositioned 每帧上报位置，列表滚动时会让每张图每帧重组；
+            // 位置和尺寸只有长按预览用到，非预览图不挂这些回调
             modifier = Modifier
                 .fillMaxSize()
-                .onSizeChanged {
-                    layoutSize = it
-                }
-                .onGloballyPositioned {
-                    layoutOffset = it.positionInWindow()
-                },
+                .then(
+                    if (enablePreview) {
+                        Modifier
+                            .onSizeChanged { layoutSize = it }
+                            .onGloballyPositioned { layoutOffset = it.positionInWindow() }
+                    } else {
+                        Modifier
+                    }
+                ),
             contentDescription = contentDescription,
             contentScale = contentScale,
             state = state,
