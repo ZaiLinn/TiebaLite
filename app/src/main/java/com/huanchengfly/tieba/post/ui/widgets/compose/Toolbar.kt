@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -19,7 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.CircleShape
@@ -329,7 +330,7 @@ fun Toolbar(
 }
 
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun TopAppBarContainer(
     topBar: @Composable ColumnScope.() -> Unit,
@@ -338,7 +339,8 @@ fun TopAppBarContainer(
     content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val statusBarModifier = if (insets) {
-        Modifier.windowInsetsTopHeight(WindowInsets.statusBars)
+        // 看图/视频全屏隐藏状态栏时，下层页面按可见性算会塌掉状态栏高度整体上移
+        Modifier.windowInsetsTopHeight(WindowInsets.statusBarsIgnoringVisibility)
     } else {
         Modifier
     }
