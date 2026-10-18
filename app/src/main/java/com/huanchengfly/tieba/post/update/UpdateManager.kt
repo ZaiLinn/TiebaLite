@@ -145,7 +145,7 @@ class UpdateManager @Inject constructor(
                 _state.value = UpdateUiState.Checking(source)
                 val release = fetchLatest(origin)
                 if (release == null) {
-                    // 网络瞬断/接口失败：不写 lastCheckTime，避免 6h 节流把下次启动检查也静默屏蔽
+                    // 网络瞬断/接口失败：不写 lastCheckTime，避免 24h 节流把下次启动检查也静默屏蔽
                     _state.value = when (source) {
                         // 启动检查失败静默，不打扰
                         UpdateSource.STARTUP -> UpdateUiState.Idle
@@ -319,8 +319,8 @@ class UpdateManager @Inject constructor(
         /** 更新 APK 下载目录（cache 子目录，对应 FileProvider 的 update_apk paths）。 */
         const val UPDATE_DIR = "update"
 
-        /** 启动检查节流间隔：6 小时。 */
-        const val CHECK_INTERVAL_MS = 6L * 60 * 60 * 1000
+        /** 启动检查节流间隔：24 小时。 */
+        const val CHECK_INTERVAL_MS = 24L * 60 * 60 * 1000
 
         private val KEY_LAST_CHECK = longPreferencesKey("update_last_check_time")
         private val KEY_IGNORED_TAG = stringPreferencesKey("update_ignored_tag")
