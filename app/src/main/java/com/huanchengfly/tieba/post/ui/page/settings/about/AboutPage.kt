@@ -377,7 +377,7 @@ fun AboutPage(
                     TextButton(
                         onClick = {
                             try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/qaqmin/TiebaLite"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/ZaiLinn/TiebaLite"))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 context.toastShort("无法打开链接")
@@ -387,7 +387,7 @@ fun AboutPage(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            "github.com/qaqmin/TiebaLite",
+                            "github.com/ZaiLinn/TiebaLite",
                             color = ExtendedTheme.colors.accent,
                             fontSize = 13.sp
                         )
