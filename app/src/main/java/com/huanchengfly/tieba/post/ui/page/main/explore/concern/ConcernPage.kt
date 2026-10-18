@@ -25,6 +25,7 @@ import com.huanchengfly.tieba.post.arch.wrapImmutable
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.theme.compose.pullRefreshIndicator
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
+import com.huanchengfly.tieba.post.ui.page.thread.navigateToThread
 import com.huanchengfly.tieba.post.ui.widgets.compose.Container
 import com.huanchengfly.tieba.post.ui.widgets.compose.FeedCard
 import com.huanchengfly.tieba.post.ui.widgets.compose.LazyLoad
@@ -96,10 +97,10 @@ fun ConcernPage(
                                 FeedCard(
                                     item = wrapImmutable(item.threadList!!),
                                     onClick = {
-                                        navigator.navigate("thread/${it.threadId}")
+                                        navigator.navigateToThread(it.threadId, it)
                                     },
                                     onClickReply = {
-                                        navigator.navigate("thread/${it.threadId}")
+                                        navigator.navigateToThread(it.threadId, it)
                                     },
                                     onAgree = {
                                         viewModel.send(

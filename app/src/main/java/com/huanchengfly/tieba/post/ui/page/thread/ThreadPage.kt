@@ -349,7 +349,12 @@ fun ThreadPage(
     )
 
     val isEmpty by remember {
-        derivedStateOf { data.isEmpty() && firstPost == null }
+        derivedStateOf {
+            // 从列表点进来时 1 楼是用列表里的帖子信息预填充的（id 为 0）；
+            // 真实数据加载失败时仍按空页面处理，显示错误页和重新加载按钮
+            val onlyPreview = firstPost?.get { id } == 0L
+            data.isEmpty() && (firstPost == null || (onlyPreview && isError))
+        }
     }
     val enablePullRefresh by remember {
         derivedStateOf {

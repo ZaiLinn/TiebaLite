@@ -60,6 +60,7 @@ import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.theme.compose.pullRefreshIndicator
 import com.huanchengfly.tieba.post.ui.models.ThreadItemData
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
+import com.huanchengfly.tieba.post.ui.page.thread.navigateToThread
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockTip
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockableContent
 import com.huanchengfly.tieba.post.ui.widgets.compose.Container
@@ -184,10 +185,10 @@ fun PersonalizedPage(
                     refreshPositionProvider = { refreshPosition },
                     hiddenThreadIdsProvider = { hiddenThreadIds },
                     onItemClick = {
-                        navigator.navigate("thread/${it.id}")
+                        navigator.navigateToThread(it.id, it)
                     },
                     onItemReplyClick = {
-                        navigator.navigate("thread/${it.id}")
+                        navigator.navigateToThread(it.id, it)
                     },
                     onAgree = {
                         viewModel.send(

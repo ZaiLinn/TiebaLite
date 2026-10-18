@@ -52,6 +52,7 @@ import com.huanchengfly.tieba.post.ui.common.theme.compose.RedA700
 import com.huanchengfly.tieba.post.ui.common.theme.compose.White
 import com.huanchengfly.tieba.post.ui.common.theme.compose.Yellow
 import com.huanchengfly.tieba.post.ui.common.theme.compose.pullRefreshIndicator
+import com.huanchengfly.tieba.post.ui.page.thread.navigateToThread
 import com.huanchengfly.tieba.post.ui.widgets.compose.Container
 import com.huanchengfly.tieba.post.ui.widgets.compose.FeedCard
 import com.huanchengfly.tieba.post.ui.widgets.compose.LazyLoad
@@ -294,10 +295,10 @@ fun HotPage(navigator: NavHostController,
                             FeedCard(
                                 item = item,
                                 onClick = {
-                                    navigator.navigate("thread/${it.id}")
+                                    navigator.navigateToThread(it.id, it)
                                 },
                                 onClickReply = {
-                                    navigator.navigate("thread/${it.id}")
+                                    navigator.navigateToThread(it.id, it)
                                 },
                                 onAgree = {
                                     viewModel.send(

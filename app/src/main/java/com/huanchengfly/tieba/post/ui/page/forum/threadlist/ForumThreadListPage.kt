@@ -53,6 +53,7 @@ import com.huanchengfly.tieba.post.ui.common.windowsizeclass.WindowWidthSizeClas
 import com.huanchengfly.tieba.post.ui.models.ThreadItemData
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
 import com.huanchengfly.tieba.post.ui.page.forum.getSortType
+import com.huanchengfly.tieba.post.ui.page.thread.navigateToThread
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockTip
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockableContent
 import com.huanchengfly.tieba.post.ui.widgets.compose.Chip
@@ -386,10 +387,10 @@ fun ForumThreadListPage(
                     state = lazyListState,
                     items = threadList,
                     onItemClicked = {
-                        navigator.navigate("thread/${it.threadId}")
+                        navigator.navigateToThread(it.threadId, it)
                     },
                     onItemReplyClicked = {
-                        navigator.navigate("thread/${it.threadId}")
+                        navigator.navigateToThread(it.threadId, it)
                     },
                     onAgree = {
                         viewModel.send(

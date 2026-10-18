@@ -121,6 +121,7 @@ import com.huanchengfly.tieba.post.ui.page.settings.theme.AppThemePage
 import com.huanchengfly.tieba.post.ui.page.subposts.SubPostsPage
 import com.huanchengfly.tieba.post.ui.page.subposts.SubPostsSheetPage
 import com.huanchengfly.tieba.post.ui.page.thread.ThreadPage
+import com.huanchengfly.tieba.post.ui.page.thread.ThreadPreviewCache
 import com.huanchengfly.tieba.post.ui.page.thread.post.PostThreadPage
 import com.huanchengfly.tieba.post.ui.page.threadstore.ThreadStorePage
 import com.huanchengfly.tieba.post.ui.page.user.UserProfilePage
@@ -620,6 +621,7 @@ class MainActivityV2 : BaseComposeActivity() {
                                     threadId = threadId,
                                     postId = postId,
                                     from = from,
+                                    threadInfo = remember(threadId) { ThreadPreviewCache.get(threadId) },
                                     scrollToReply = scrollToReply,
                                 )
                             }
