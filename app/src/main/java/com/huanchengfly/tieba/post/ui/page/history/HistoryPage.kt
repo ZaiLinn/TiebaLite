@@ -36,6 +36,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.TabRow
 import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
 import com.huanchengfly.tieba.post.utils.HistoryUtil
 import androidx.navigation.NavHostController
+import com.huanchengfly.tieba.post.utils.ReadThreads
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -67,6 +68,7 @@ fun HistoryPage(
                     IconButton(onClick = {
                         coroutineScope.launch {
                             HistoryUtil.deleteAll()
+                            ReadThreads.clear()
                             emitGlobalEvent(HistoryListUiEvent.DeleteAll)
                             launch {
                                 scaffoldState.snackbarHostState.showSnackbar(

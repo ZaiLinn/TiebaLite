@@ -36,6 +36,7 @@ import com.huanchengfly.tieba.post.utils.AppIconUtil
 import com.huanchengfly.tieba.post.utils.BlockManager
 import com.huanchengfly.tieba.post.utils.ClientUtils
 import com.huanchengfly.tieba.post.utils.EmoticonManager
+import com.huanchengfly.tieba.post.utils.ReadThreads
 import com.huanchengfly.tieba.post.utils.SharedPreferencesUtil
 import com.huanchengfly.tieba.post.utils.ThemeUtil
 import com.huanchengfly.tieba.post.utils.Util
@@ -92,6 +93,7 @@ class App : Application(), SketchFactory {
         registerActivityLifecycleCallbacks(OAIDGetter)
         thread {
             BlockManager.init()
+            ReadThreads.init()
             EmoticonManager.init(this@App)
         }
     }

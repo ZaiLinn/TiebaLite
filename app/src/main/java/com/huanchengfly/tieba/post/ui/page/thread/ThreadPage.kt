@@ -109,6 +109,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.ui.widgets.compose.states.StateScreen
 import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
 import com.huanchengfly.tieba.post.utils.HistoryUtil
+import com.huanchengfly.tieba.post.utils.ReadThreads
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
@@ -557,6 +558,8 @@ fun ThreadPage(
             }
         }
     }
+
+    LaunchedEffect(threadId) { ReadThreads.markRead(threadId) }
 
     // 浏览历史：最后可见楼层变化后防抖再保存。原来每出现一层新楼就新开线程写一次数据库，
     // 而且在组合阶段读取最后可见楼层，滑动时整页跟着重组

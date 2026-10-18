@@ -92,6 +92,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.video.rememberVideoPlayerC
 import com.huanchengfly.tieba.post.utils.DateTimeUtils
 import com.huanchengfly.tieba.post.utils.EmoticonUtil.emoticonString
 import com.huanchengfly.tieba.post.utils.ImageUtil
+import com.huanchengfly.tieba.post.utils.ReadThreads
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.StringUtil.getShortNumString
 import com.huanchengfly.tieba.post.utils.appPreferences
@@ -272,6 +273,7 @@ fun ThreadContent(
     isGood: Boolean = false,
     maxLines: Int = 5,
     highlightKeywords: ImmutableList<String> = persistentListOf(),
+    read: Boolean = false,
 ) {
     val goodTip = stringResource(id = R.string.tip_good)
     val accentColor = ExtendedTheme.colors.accent
@@ -309,6 +311,8 @@ fun ThreadContent(
         modifier = Modifier
             .fillMaxWidth()
             .then(modifier),
+        // 看过的帖子变灰
+        color = if (read) ExtendedTheme.colors.textSecondary else Color.Unspecified,
         fontSize = 15.sp,
         lineSpacing = 0.8.sp,
         overflow = TextOverflow.Ellipsis,
@@ -787,6 +791,8 @@ fun FeedCard(
                 showTitle = item.get { isNoTitle != 1 && title.isNotBlank() },
                 showAbstract = abstractText.isNotBlank(),
                 isGood = item.get { isGood == 1 },
+                // 推荐流的 threadId 可能为 0，id 才是帖子 id
+                read = ReadThreads.isRead(item.get { threadId.takeIf { it != 0L } ?: id }),
             )
 
             ThreadMedia(
