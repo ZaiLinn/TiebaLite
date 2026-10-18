@@ -99,13 +99,8 @@ internal class DefaultVideoPlayerController(
                     null
                 }
 
-                updateDurationAndPositionJob?.cancel()
-                updateDurationAndPositionJob = coroutineScope.launch {
-                    while (this.isActive) {
-                        updateDurationAndPosition()
-                        delay(250)
-                    }
-                }
+                // 暂停时不轮询进度，只刷新一次时长和位置；播放中的轮询由 onIsPlayingChanged 开关
+                updateDurationAndPosition()
             }
 
             _state.set {
@@ -113,6 +108,21 @@ internal class DefaultVideoPlayerController(
                     playbackState = PlaybackState.of(playbackState),
                     startedPlay = playbackState != STATE_IDLE
                 )
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            updateDurationAndPositionJob?.cancel()
+            updateDurationAndPositionJob = if (isPlaying) {
+                coroutineScope.launch {
+                    while (this.isActive) {
+                        updateDurationAndPosition()
+                        delay(250)
+                    }
+                }
+            } else {
+                updateDurationAndPosition()
+                null
             }
         }
 
@@ -166,6 +176,9 @@ internal class DefaultVideoPlayerController(
             playWhenReady = false
         }
 
+    /** 预览播放器是否已载入当前 [source]；它只在拖动进度条时才创建和缓冲 */
+    private var previewSourcePrepared = false
+
     private val previewSeekDebouncer = FlowDebouncer<Long>(200L)
 
     init {
@@ -173,7 +186,7 @@ internal class DefaultVideoPlayerController(
 
         coroutineScope.launch {
             previewSeekDebouncer.collect { position ->
-                previewExoPlayer.seekTo(position)
+                if (!released.get()) preparedPreviewPlayer().seekTo(position)
             }
         }
     }
@@ -310,39 +323,49 @@ internal class DefaultVideoPlayerController(
     }
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-    private fun prepare() {
-        fun createVideoSource(): MediaSource {
-            val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context)
+    private fun createVideoSource(): MediaSource {
+        val dataSourceFactory: DataSource.Factory = DefaultDataSource.Factory(context)
 
-            return when (val source = source) {
-                is VideoPlayerSource.Raw -> {
-                    ProgressiveMediaSource.Factory(dataSourceFactory)
-                        .createMediaSource(
-                            MediaItem.fromUri(
-                                RawResourceDataSource.buildRawResourceUri(
-                                    source.resId
-                                )
+        return when (val source = source) {
+            is VideoPlayerSource.Raw -> {
+                ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(
+                        MediaItem.fromUri(
+                            RawResourceDataSource.buildRawResourceUri(
+                                source.resId
                             )
                         )
-                }
+                    )
+            }
 
-                is VideoPlayerSource.Network -> {
-                    // 贴吧视频链接多为 http 明文，升级为 https 避免被网络安全策略拦截
-                    val url = source.url.replaceFirst("http://", "https://")
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(url)
-                        .build()
-                    ProgressiveMediaSource.Factory(dataSourceFactory)
-                        .createMediaSource(mediaItem)
-                }
+            is VideoPlayerSource.Network -> {
+                // 贴吧视频链接多为 http 明文，升级为 https 避免被网络安全策略拦截
+                val url = source.url.replaceFirst("http://", "https://")
+                val mediaItem = MediaItem.Builder()
+                    .setUri(url)
+                    .build()
+                ProgressiveMediaSource.Factory(dataSourceFactory)
+                    .createMediaSource(mediaItem)
             }
         }
+    }
 
+    private fun prepare() {
         exoPlayer.setMediaSource(createVideoSource())
-        previewExoPlayer.setMediaSource(createVideoSource())
-
         exoPlayer.prepare()
-        previewExoPlayer.prepare()
+        // 预览播放器若已存在，下次拖动时再换成新的 source
+        previewSourcePrepared = false
+    }
+
+    /** 拖动进度条时才创建并缓冲预览播放器，避免每个视频都多拉一路流、多占一个解码器 */
+    private fun preparedPreviewPlayer(): ExoPlayer {
+        val player = previewExoPlayer
+        if (!previewSourcePrepared && this::source.isInitialized) {
+            player.setMediaSource(createVideoSource())
+            player.prepare()
+            previewSourcePrepared = true
+        }
+        return player
     }
 
     fun playerViewAvailable(playerView: PlayerView) {
@@ -360,7 +383,7 @@ internal class DefaultVideoPlayerController(
     }
 
     fun previewPlayerViewAvailable(playerView: PlayerView) {
-        playerView.player = previewExoPlayer
+        playerView.player = preparedPreviewPlayer()
     }
 
     fun previewSeekTo(position: Long) {
@@ -375,7 +398,7 @@ internal class DefaultVideoPlayerController(
 
     override fun reset() {
         exoPlayer.stop()
-        previewExoPlayer.stop()
+        _previewExoPlayer?.stop()
     }
 
     override fun release() {
@@ -385,7 +408,7 @@ internal class DefaultVideoPlayerController(
             updateDurationAndPositionJob?.cancel()
             autoHideControllerJob?.cancel()
             exoPlayer.release()
-            previewExoPlayer.release()
+            _previewExoPlayer?.release()
             _exoPlayer = null
             _previewExoPlayer = null
         }
