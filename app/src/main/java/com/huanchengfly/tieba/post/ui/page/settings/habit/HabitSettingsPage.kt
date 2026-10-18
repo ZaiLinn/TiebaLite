@@ -180,7 +180,7 @@ fun HabitSettingsPage(
                 ListPref(
                     key = "forumFabFunction",
                     title = stringResource(id = R.string.settings_forum_fab_function),
-                    defaultValue = "post",
+                    defaultValue = "back_to_top",
                     leadingIcon = {
                         LeadingIcon {
                             AvatarIcon(
@@ -192,7 +192,6 @@ fun HabitSettingsPage(
                     },
                     useSelectedAsSummary = true,
                     entries = mapOf(
-                        "post" to stringResource(id = R.string.btn_post),
                         "refresh" to stringResource(id = R.string.btn_refresh),
                         "back_to_top" to stringResource(id = R.string.btn_back_to_top),
                         "hide" to stringResource(id = R.string.btn_hide)

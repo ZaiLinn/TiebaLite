@@ -40,7 +40,6 @@ import androidx.compose.material.Tab
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
@@ -613,12 +612,12 @@ fun ForumPage(
                                     }
 
                                     else -> {
-                                        // 默认（"post"）：发新帖
-                                        val fid = forumInfo?.get { id }
-                                        if (fid == null || fid == 0L) {
-                                            context.toastShort(R.string.toast_feature_unavailable)
-                                        } else {
-                                            navigator.navigate("post_thread/$fid?forumName=${Uri.encode(forumName)}")
+                                        // 发帖会被贴吧风控秒删（服务端接受后异步删除），入口暂时隐藏。
+                                        // 发帖页与接口保留在代码中，FAB 回退为回到顶部。
+                                        coroutineScope.launch {
+                                            emitGlobalEvent(
+                                                ForumThreadListUiEvent.BackToTop(currentPage == 1)
+                                            )
                                         }
                                     }
                                 }
@@ -630,8 +629,7 @@ fun ForumPage(
                             Icon(
                                 imageVector = when (context.appPreferences.forumFabFunction) {
                                     "refresh" -> Icons.Rounded.Refresh
-                                    "back_to_top" -> Icons.Rounded.VerticalAlignTop
-                                    else -> Icons.Rounded.Add
+                                    else -> Icons.Rounded.VerticalAlignTop
                                 },
                                 contentDescription = null
                             )
