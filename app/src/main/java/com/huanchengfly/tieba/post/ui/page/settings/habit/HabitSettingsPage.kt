@@ -7,7 +7,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.BrandingWatermark
-import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.outlined.CalendarViewDay
 import androidx.compose.material.icons.outlined.Home
@@ -174,28 +173,6 @@ fun HabitSettingsPage(
                             )
                         }
                     },
-                )
-            }
-            prefsItem {
-                ListPref(
-                    key = "forumFabFunction",
-                    title = stringResource(id = R.string.settings_forum_fab_function),
-                    defaultValue = "back_to_top",
-                    leadingIcon = {
-                        LeadingIcon {
-                            AvatarIcon(
-                                icon = Icons.AutoMirrored.Outlined.ExitToApp,
-                                size = Sizes.Small,
-                                contentDescription = null,
-                            )
-                        }
-                    },
-                    useSelectedAsSummary = true,
-                    entries = mapOf(
-                        "refresh" to stringResource(id = R.string.btn_refresh),
-                        "back_to_top" to stringResource(id = R.string.btn_back_to_top),
-                        "hide" to stringResource(id = R.string.btn_hide)
-                    )
                 )
             }
             prefsItem {

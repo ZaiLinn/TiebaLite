@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -31,7 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FloatingActionButton
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.LinearProgressIndicator
@@ -41,9 +39,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.VerticalAlignTop
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,7 +82,6 @@ import com.huanchengfly.tieba.post.api.models.protos.frsPage.ForumInfo
 import com.huanchengfly.tieba.post.arch.ImmutableHolder
 import com.huanchengfly.tieba.post.arch.collectPartialAsState
 import com.huanchengfly.tieba.post.arch.emitGlobalEvent
-import com.huanchengfly.tieba.post.arch.emitGlobalEventSuspend
 import com.huanchengfly.tieba.post.arch.onEvent
 import com.huanchengfly.tieba.post.arch.pageViewModel
 import com.huanchengfly.tieba.post.dataStore
@@ -577,65 +572,6 @@ fun ForumPage(
                         forumId = forumInfo?.get { id }
                     )
                 },
-                floatingActionButton = {
-                    if (context.appPreferences.forumFabFunction != "hide") {
-                        FloatingActionButton(
-                            onClick = {
-                                when (context.appPreferences.forumFabFunction) {
-                                    "refresh" -> {
-                                        coroutineScope.launch {
-                                            emitGlobalEventSuspend(
-                                                ForumThreadListUiEvent.BackToTop(
-                                                    currentPage == 1
-                                                )
-                                            )
-                                            emitGlobalEventSuspend(
-                                                ForumThreadListUiEvent.Refresh(
-                                                    currentPage == 1,
-                                                    getSortType(
-                                                        context,
-                                                        forumName
-                                                    )
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    "back_to_top" -> {
-                                        coroutineScope.launch {
-                                            emitGlobalEvent(
-                                                ForumThreadListUiEvent.BackToTop(
-                                                    currentPage == 1
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    else -> {
-                                        // 发帖会被贴吧风控秒删（服务端接受后异步删除），入口暂时隐藏。
-                                        // 发帖页与接口保留在代码中，FAB 回退为回到顶部。
-                                        coroutineScope.launch {
-                                            emitGlobalEvent(
-                                                ForumThreadListUiEvent.BackToTop(currentPage == 1)
-                                            )
-                                        }
-                                    }
-                                }
-                            },
-                            backgroundColor = ExtendedTheme.colors.windowBackground,
-                            contentColor = ExtendedTheme.colors.primary,
-                            modifier = Modifier.navigationBarsPadding()
-                        ) {
-                            Icon(
-                                imageVector = when (context.appPreferences.forumFabFunction) {
-                                    "refresh" -> Icons.Rounded.Refresh
-                                    else -> Icons.Rounded.VerticalAlignTop
-                                },
-                                contentDescription = null
-                            )
-                        }
-                    }
-                }
             ) { contentPadding ->
                 var isFakeLoading by remember { mutableStateOf(false) }
 

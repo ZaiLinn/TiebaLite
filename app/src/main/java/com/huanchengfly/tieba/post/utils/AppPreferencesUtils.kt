@@ -162,8 +162,6 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var fontScale by DataStoreDelegates.float(defaultValue = 1.0f)
 
-    var forumFabFunction by DataStoreDelegates.string(defaultValue = "back_to_top")
-
     var hideBlockedContent by DataStoreDelegates.boolean(defaultValue = false)
 
     var hideExplore by DataStoreDelegates.boolean(defaultValue = false)
