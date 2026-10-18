@@ -6,7 +6,6 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.OfflineBolt
@@ -97,25 +96,6 @@ fun MoreSettingsPage(
                 .padding(paddingValues)
                 .fillMaxSize(),
         ) {
-            if (context.appPreferences.showExperimentalFeatures) {
-                prefsItem {
-                    SwitchPref(
-                        leadingIcon = {
-                            LeadingIcon {
-                                AvatarIcon(
-                                    icon = Icons.Outlined.BugReport,
-                                    size = Sizes.Small,
-                                    contentDescription = null,
-                                )
-                            }
-                        },
-                        key = "checkCIUpdate",
-                        title = stringResource(id = R.string.title_check_ci_update),
-                        defaultChecked = false,
-                        summary = stringResource(id = R.string.tip_check_ci_update)
-                    )
-                }
-            }
             prefsItem {
                 SwitchPref(
                     leadingIcon = {

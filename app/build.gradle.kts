@@ -282,7 +282,4 @@ dependencies {
 
     implementation(com.github.yalantis.ucrop)
 
-    implementation(appcenter.analytics)
-    implementation(appcenter.crashes)
-    implementation(appcenter.distribute)
 }

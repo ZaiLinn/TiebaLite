@@ -154,7 +154,6 @@ import com.huanchengfly.tieba.post.utils.newIntentFilter
 import com.huanchengfly.tieba.post.utils.registerPickMediasLauncher
 import com.huanchengfly.tieba.post.utils.requestIgnoreBatteryOptimizations
 import com.huanchengfly.tieba.post.utils.requestPermission
-import com.microsoft.appcenter.analytics.Analytics
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
@@ -543,17 +542,6 @@ class MainActivityV2 : BaseComposeActivity() {
                 val navigator = TiebaNavHostDefaults.rememberBottomSheetNavigator()
 
                 navController.navigatorProvider += navigator
-
-                LaunchedEffect(navController) {
-                    navController.currentBackStackEntryFlow.collect { entry ->
-                        entry?.destination?.route?.let { route ->
-                            Analytics.trackEvent(
-                                "PageChanged",
-                                mapOf("page" to route)
-                            )
-                        }
-                    }
-                }
 
                 CompositionLocalProvider(
                     LocalNavController provides navController,
