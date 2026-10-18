@@ -18,6 +18,9 @@ data class Block @JvmOverloads constructor(
         const val TYPE_KEYWORD = 0
         const val TYPE_USER = 1
 
+        /** 内容与关键词完全相同（去掉首尾空白后比较）才屏蔽，用于长按楼层「屏蔽该楼内容」 */
+        const val TYPE_EXACT_CONTENT = 2
+
         fun Block.getKeywords(): List<String> {
             return keywords?.fromJson() ?: emptyList()
         }

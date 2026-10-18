@@ -64,6 +64,7 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.states.StateScreen
 import com.huanchengfly.tieba.post.utils.GsonUtil
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -328,8 +329,16 @@ private fun BlockItem(
                 }.getOrDefault(emptyList())
                 Text(
                     text = keywordsList.joinToString(" "),
-                    style = MaterialTheme.typography.subtitle1
+                    style = MaterialTheme.typography.subtitle1,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
+                if (item.type == Block.TYPE_EXACT_CONTENT) {
+                    Text(
+                        text = stringResource(id = R.string.block_type_exact_content),
+                        style = MaterialTheme.typography.caption
+                    )
+                }
             }
         }
     }

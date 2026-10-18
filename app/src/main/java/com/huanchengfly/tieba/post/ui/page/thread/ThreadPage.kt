@@ -103,8 +103,11 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.MyScaffold
 import com.huanchengfly.tieba.post.ui.widgets.compose.OriginThreadCard
 import com.huanchengfly.tieba.post.ui.widgets.compose.TipScreen
 import com.huanchengfly.tieba.post.ui.widgets.compose.VerticalDivider
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberBlockRulesChangeCount
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberBlocked
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.ui.widgets.compose.states.StateScreen
+import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
 import com.huanchengfly.tieba.post.utils.HistoryUtil
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
@@ -283,6 +286,7 @@ fun ThreadPage(
         prop1 = ThreadUiState::user,
         initial = wrapImmutable(User())
     )
+    val blockRulesChangeCount = rememberBlockRulesChangeCount()
     val anti by viewModel.uiState.collectPartialAsState(
         prop1 = ThreadUiState::anti,
         initial = null
@@ -607,7 +611,9 @@ fun ThreadPage(
             contentRenders = contentRenders,
             subPosts = subPosts,
             threadAuthorId = author?.get { id } ?: 0L,
-            blocked = blocked,
+            blocked = rememberBlocked(item, blocked, blockRulesChangeCount) { item.get { shouldBlock() } },
+            currentUserId = user.get { id },
+            blockRulesChangeCount = blockRulesChangeCount,
             canDelete = { it.author_id == user.get { id } },
             immersiveMode = isImmersiveMode,
             isCollected = { it.id == thread?.get { collectMarkPid.toLongOrNull() } },

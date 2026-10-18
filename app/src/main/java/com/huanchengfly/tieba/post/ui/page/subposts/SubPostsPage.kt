@@ -83,6 +83,10 @@ import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import androidx.navigation.NavHostController
+import com.huanchengfly.tieba.post.ui.widgets.compose.BlockMenuItems
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberBlockRulesChangeCount
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberBlocked
+import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -147,6 +151,7 @@ internal fun SubPostsContent(
 ) {
     val navigator = LocalNavigator.current
     val account = LocalAccount.current
+    val blockRulesChangeCount = rememberBlockRulesChangeCount()
 
     LazyLoad(key = viewModel, loaded = viewModel.initialized) {
         viewModel.send(
@@ -407,6 +412,7 @@ internal fun SubPostsContent(
                                     contentRenders = postContentRenders,
                                     canDelete = { it.author_id == account?.uid?.toLongOrNull() },
                                     showSubPosts = false,
+                                    currentUserId = account?.uid?.toLongOrNull() ?: 0L,
                                     onUserClick = {
                                         navigator.navigate("user/${it.id}")
                                     },
@@ -469,6 +475,8 @@ internal fun SubPostsContent(
                         SubPostItem(
                             item = item,
                             canDelete = { it.author_id == account?.uid?.toLongOrNull() },
+                            currentUserId = account?.uid?.toLongOrNull() ?: 0L,
+                            blockRulesChangeCount = blockRulesChangeCount,
                             threadAuthorId = thread?.get { author?.id },
                             onUserClick = {
                                 navigator.navigate("user/${it.id}")
@@ -538,8 +546,13 @@ private fun SubPostItem(
     onReplyClick: (SubPostList) -> Unit = {},
     onMenuCopyClick: ((String) -> Unit)? = null,
     onMenuDeleteClick: ((SubPostList) -> Unit)? = null,
+    currentUserId: Long = 0L,
+    blockRulesChangeCount: Int = 0,
 ) {
-    val (subPost, contentRenders, blocked) = item
+    val (subPost, contentRenders, precomputedBlocked) = item
+    val blocked = rememberBlocked(subPost, precomputedBlocked, blockRulesChangeCount) {
+        subPost.get { shouldBlock() }
+    }
     val context = LocalContext.current
     val navigator = LocalNavigator.current
     val coroutineScope = rememberCoroutineScope()
@@ -592,6 +605,14 @@ private fun SubPostItem(
                 ) {
                     Text(text = stringResource(id = R.string.title_report))
                 }
+                BlockMenuItems(
+                    contentText = contentRenders.joinToString("\n") { it.toString() },
+                    authorId = subPost.get { author_id },
+                    authorName = author?.get { name },
+                    currentUserId = currentUserId,
+                    isSubPost = true,
+                    onDismiss = { menuState.expanded = false }
+                )
                 if (canDelete(subPost.get()) && onMenuDeleteClick != null) {
                     DropdownMenuItem(
                         onClick = {

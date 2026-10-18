@@ -54,6 +54,7 @@ import com.huanchengfly.tieba.post.ui.common.PbContentText
 import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.page.LocalNavigator
 import com.huanchengfly.tieba.post.ui.widgets.compose.Avatar
+import com.huanchengfly.tieba.post.ui.widgets.compose.BlockMenuItems
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockTip
 import com.huanchengfly.tieba.post.ui.widgets.compose.BlockableContent
 import com.huanchengfly.tieba.post.ui.widgets.compose.Button
@@ -63,7 +64,9 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.LongClickMenu
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
 import com.huanchengfly.tieba.post.ui.widgets.compose.UserHeader
 import com.huanchengfly.tieba.post.ui.widgets.compose.buildChipInlineContent
+import com.huanchengfly.tieba.post.ui.widgets.compose.rememberBlocked
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberMenuState
+import com.huanchengfly.tieba.post.utils.BlockManager.shouldBlock
 import com.huanchengfly.tieba.post.utils.DateTimeUtils.getRelativeTimeString
 import com.huanchengfly.tieba.post.utils.StringUtil
 import com.huanchengfly.tieba.post.utils.StringUtil.getShortNumString
@@ -154,6 +157,8 @@ fun PostCard(
     onOpenSubPosts: (subPostId: Long) -> Unit = {},
     onMenuCopyClick: ((String) -> Unit)? = null,
     onMenuFavoriteClick: ((Post) -> Unit)? = null,
+    currentUserId: Long = 0L,
+    blockRulesChangeCount: Int = 0,
     onMenuDeleteClick: ((Post) -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -226,6 +231,14 @@ fun PostCard(
                 ) {
                     Text(text = stringResource(id = R.string.title_report))
                 }
+                BlockMenuItems(
+                    contentText = post.content.plainText,
+                    authorId = post.author_id,
+                    authorName = post.author?.name,
+                    currentUserId = currentUserId,
+                    isSubPost = false,
+                    onDismiss = { menuState.expanded = false }
+                )
                 if (onMenuFavoriteClick != null) {
                     DropdownMenuItem(
                         onClick = {
@@ -345,7 +358,9 @@ fun PostCard(
                             val subPostInlineContent = remember(lzChip) { mapOf("Lz" to lzChip) }
                             subPosts.fastForEach { item ->
                                 BlockableContent(
-                                    blocked = item.blocked,
+                                    blocked = rememberBlocked(item.subPost, item.blocked, blockRulesChangeCount) {
+                                        item.subPost.get { shouldBlock() }
+                                    },
                                     blockedTip = {
                                         Text(
                                             text = stringResource(id = R.string.tip_blocked_sub_post),
@@ -370,7 +385,8 @@ fun PostCard(
                                         onOpenSubPosts = onOpenSubPosts,
                                         onMenuCopyClick = {
                                             onMenuCopyClick?.invoke(it.content.plainText)
-                                        }
+                                        },
+                                        currentUserId = currentUserId,
                                     )
                                 }
                             }
@@ -410,6 +426,7 @@ private fun SubPostItem(
     onReplyClick: ((SubPostList) -> Unit)?,
     onOpenSubPosts: (Long) -> Unit,
     onMenuCopyClick: ((SubPostList) -> Unit)?,
+    currentUserId: Long = 0L,
 ) {
     val context = LocalContext.current
     val navigator = LocalNavigator.current
@@ -448,6 +465,14 @@ private fun SubPostItem(
             ) {
                 Text(text = stringResource(id = R.string.title_report))
             }
+            BlockMenuItems(
+                contentText = subPostList.get { content.plainText },
+                authorId = subPostList.get { author_id },
+                authorName = subPostList.get { author?.name },
+                currentUserId = currentUserId,
+                isSubPost = true,
+                onDismiss = { menuState.expanded = false }
+            )
         },
         shape = RoundedCornerShape(0),
         onClick = {

@@ -366,6 +366,11 @@
     <string name="title_personalized">推荐</string>
     <string name="block_type_keywords">关键词</string>
     <string name="block_type_user">用户</string>
+    <string name="block_type_exact_content">完全匹配</string>
+    <string name="menu_block_post_content">屏蔽该楼内容</string>
+    <string name="menu_block_sub_post_content">屏蔽该回复内容</string>
+    <string name="menu_block_user">屏蔽该用户</string>
+    <string name="toast_blocked">已屏蔽，可在 屏蔽设置 → 屏蔽词管理 中撤销</string>
     <string name="tip_add_block">可用空格分隔多个关键词，含有全部关键词的内容将会被屏蔽</string>
     <string name="desc_download_pic">下载图片</string>
     <string name="desc_batch_download">批量下载</string>
@@ -422,12 +427,12 @@
     <string name="btn_load_previous">查看上一页</string>
     <string name="desc_video">视频</string>
     <string name="tip_long_pic">长图</string>
+    <string name="tip_image_load_failed">加载失败，点击重试</string>
     <string name="tag_video">[视频]</string>
     <string name="message_add_favorite_success">已收藏至第 %d 楼</string>
     <string name="message_remove_favorite_success">取消收藏成功</string>
     <string name="message_update_collect_mark">本次阅读到第 %d 楼，是否更新收藏楼层？</string>
     <string name="message_update_collect_mark_failed">更新收藏楼层失败 %s</string>
-    <string name="tip_image_load_failed">加载失败，点击重试</string>
     <string name="message_update_collect_mark_success">更新收藏楼层成功</string>
     <string name="single_chinese_char" translatable="false">国</string>
     <string name="open_all_sub_posts">查看全部 %d 条回复</string>

@@ -8,6 +8,11 @@ import com.huanchengfly.tieba.post.api.models.protos.abstractText
 import com.huanchengfly.tieba.post.api.models.protos.plainText
 import com.huanchengfly.tieba.post.models.database.Block
 import com.huanchengfly.tieba.post.models.database.Block.Companion.getKeywords
+import com.huanchengfly.tieba.post.toJson
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import org.litepal.LitePal
 import org.litepal.extension.delete
 import org.litepal.extension.findAllAsync
@@ -26,6 +31,9 @@ object BlockManager {
         val whiteList = blocks.filter { it.category == Block.CATEGORY_WHITE_LIST }
         val blackKeywords = blackList.filter { it.type == Block.TYPE_KEYWORD }.map { it.getKeywords() }
         val whiteKeywords = whiteList.filter { it.type == Block.TYPE_KEYWORD }.map { it.getKeywords() }
+        val blackExactContents = blackList.filter { it.type == Block.TYPE_EXACT_CONTENT }
+            .flatMap { it.getKeywords() }
+            .mapTo(HashSet()) { it.trim() }
         val blackUsers = blackList.filter { it.type == Block.TYPE_USER }
         val whiteUsers = whiteList.filter { it.type == Block.TYPE_USER }
     }
@@ -33,11 +41,17 @@ object BlockManager {
     @Volatile
     private var rules = Rules(emptyList())
 
+    private val _version = MutableStateFlow(0)
+
+    /** 规则每变化一次加一；界面据此重新判断已加载的内容是否被屏蔽 */
+    val version: StateFlow<Int> = _version.asStateFlow()
+
     private fun updateRules(change: MutableList<Block>.() -> Unit) {
         synchronized(blockList) {
             blockList.change()
             rules = Rules(blockList.toList())
         }
+        _version.update { it + 1 }
     }
 
     val blackList: List<Block>
@@ -62,6 +76,30 @@ object BlockManager {
             }
     }
 
+    /** 屏蔽与 [content] 完全相同的内容 */
+    fun blockExactContent(content: String, callback: ((Boolean) -> Unit)? = null) {
+        addBlockAsync(
+            Block(
+                category = Block.CATEGORY_BLACK_LIST,
+                type = Block.TYPE_EXACT_CONTENT,
+                keywords = listOf(content.trim()).toJson()
+            ),
+            callback
+        )
+    }
+
+    fun blockUser(uid: Long, username: String?, callback: ((Boolean) -> Unit)? = null) {
+        addBlockAsync(
+            Block(
+                category = Block.CATEGORY_BLACK_LIST,
+                type = Block.TYPE_USER,
+                username = username,
+                uid = uid.toString()
+            ),
+            callback
+        )
+    }
+
     fun removeBlock(id: Long) {
         LitePal.delete<Block>(id)
         updateRules { removeAll { it.id == id } }
@@ -75,7 +113,9 @@ object BlockManager {
 
     fun shouldBlock(content: String): Boolean {
         val rules = rules
-        return rules.blackKeywords.any { keywords -> keywords.all { content.contains(it) } } &&
+        val blackMatched = rules.blackKeywords.any { keywords -> keywords.all { content.contains(it) } } ||
+            (rules.blackExactContents.isNotEmpty() && content.trim() in rules.blackExactContents)
+        return blackMatched &&
             rules.whiteKeywords.none { keywords -> keywords.all { content.contains(it) } }
     }
 
