@@ -50,6 +50,8 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
+        // 应用只有中文；第三方库自带的 80 多种语言字符串只会撑大 resources.arsc
+        resourceConfigurations += listOf("zh", "zh-rCN", "zh-rHK", "zh-rTW")
         versionCode = applicationVersionCode
         versionName = applicationVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -231,7 +233,6 @@ dependencies {
     implementation(org.jetbrains.annotations)
 
     implementation(kotlin.stdlib)
-    implementation(kotlin.reflect)
 
     implementation(kotlinx.coroutines.core)
     implementation(kotlinx.coroutines.android)

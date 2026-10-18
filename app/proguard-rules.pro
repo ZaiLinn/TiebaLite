@@ -159,14 +159,13 @@
 -keep interface com.yalantis.ucrop** { *; }
 
 # kotlin
--keep class kotlin.** { *; }
--keep class kotlin.Metadata { *; }
+# 不再整包保留 kotlin.**：应用没有 kotlin-reflect，运行时不读 Kotlin 元数据，交给 R8 裁剪标准库
 -dontwarn kotlin.**
+# 只裁剪不改名时 R8 会留下一处按原名调用 Intrinsics.createParameterIsNullExceptionMessage 的引用，
+# 保留 Intrinsics（很小）避免空参数检查时抛 NoSuchMethodError 而不是 NPE
+-keep class kotlin.jvm.internal.Intrinsics { *; }
 -keepclassmembers class **$WhenMappings {
     <fields>;
-}
--keepclassmembers class kotlin.Metadata {
-    public <methods>;
 }
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     static void checkParameterIsNotNull(java.lang.Object, java.lang.String);
