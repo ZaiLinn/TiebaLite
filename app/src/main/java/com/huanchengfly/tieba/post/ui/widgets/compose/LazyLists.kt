@@ -1,5 +1,7 @@
 package com.huanchengfly.tieba.post.ui.widgets.compose
 
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.github.panpf.sketch.request.PauseLoadWhenScrollingDrawableDecodeInterceptor
 import com.huanchengfly.tieba.post.arch.GlobalEvent
 import com.huanchengfly.tieba.post.arch.onGlobalEvent
+import com.huanchengfly.tieba.post.utils.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,13 +40,32 @@ object ListFling {
     private val _flinging = MutableStateFlow(false)
     val flinging: StateFlow<Boolean> = _flinging.asStateFlow()
 
+    // 保险：惯性滑动几秒内必然结束，暂停状态超过 10 秒说明计数没归零，强制恢复以免图片一直不加载
+    private val watchdog = Handler(Looper.getMainLooper())
+    private val forceResume = Runnable {
+        if (count > 0) {
+            AppLog.d("ListFling", "fling flag stuck (count=$count), force resume image loading")
+            count = 0
+            update(false)
+        }
+    }
+
     internal fun begin() {
-        if (count++ == 0) update(true)
+        if (count++ == 0) {
+            update(true)
+            watchdog.postDelayed(forceResume, STUCK_TIMEOUT_MS)
+        }
     }
 
     internal fun end() {
-        if (--count == 0) update(false)
+        if (count == 0) return
+        if (--count == 0) {
+            watchdog.removeCallbacks(forceResume)
+            update(false)
+        }
     }
+
+    private const val STUCK_TIMEOUT_MS = 10_000L
 
     private fun update(flinging: Boolean) {
         PauseLoadWhenScrollingDrawableDecodeInterceptor.scrolling = flinging

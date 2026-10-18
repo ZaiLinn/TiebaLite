@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -14,9 +15,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -37,6 +41,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -47,10 +52,12 @@ import com.github.panpf.sketch.compose.rememberAsyncImageState
 import com.github.panpf.sketch.request.Depth
 import com.github.panpf.sketch.request.DisplayRequest
 import com.github.panpf.sketch.request.DisplayResult
+import com.github.panpf.sketch.request.LoadState
 import com.github.panpf.sketch.request.pauseLoadWhenScrolling
 import com.github.panpf.sketch.stateimage.ThumbnailMemoryCacheStateImage
 import com.github.panpf.sketch.transform.MaskTransformation
 import com.huanchengfly.tieba.post.App
+import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.arch.BaseComposeActivity.Companion.LocalWindowSizeClass
 import com.huanchengfly.tieba.post.goToActivity
 import com.huanchengfly.tieba.post.models.PhotoViewData
@@ -58,9 +65,11 @@ import com.huanchengfly.tieba.post.ui.common.theme.compose.ExtendedTheme
 import com.huanchengfly.tieba.post.ui.common.windowsizeclass.WindowWidthSizeClass
 import com.huanchengfly.tieba.post.ui.page.photoview.PhotoViewActivity
 import com.huanchengfly.tieba.post.ui.page.photoview.PhotoViewActivity.Companion.EXTRA_PHOTO_VIEW_DATA
+import com.huanchengfly.tieba.post.utils.AppLog
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import com.huanchengfly.tieba.post.utils.NetworkUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 
 fun shouldLoadImage(context: Context, skipNetworkCheck: Boolean): Boolean {
@@ -289,6 +298,23 @@ fun NetworkImage(
             }
     }
 
+    // 缩略图偶尔因 CDN 502/超时加载失败，之前没有重试入口，会一直停在占位图：
+    // 自动重试一次，仍失败则显示「点击重试」，并把地址和原因写进应用日志便于排查
+    var autoRetried by remember(imageUri) { mutableStateOf(false) }
+    val loadFailed = shouldLoad && state.loadState is LoadState.Error
+    LaunchedEffect(loadFailed) {
+        if (!loadFailed) return@LaunchedEffect
+        AppLog.d(
+            "NetworkImage",
+            "load failed: $imageUri, ${(state.result as? DisplayResult.Error)?.throwable}"
+        )
+        if (!autoRetried) {
+            autoRetried = true
+            delay(1500)
+            state.restart()
+        }
+    }
+
     var isLongPressing by remember { mutableStateOf(false) }
 
     if (enablePreview) {
@@ -303,7 +329,9 @@ fun NetworkImage(
     }
 
     val onTapImage = {
-        if (!shouldLoad) {
+        if (shouldLoad && state.loadState is LoadState.Error) {
+            state.restart()
+        } else if (!shouldLoad) {
             shouldLoad = true
         } else if (photoViewData != null) {
             context.goToActivity<PhotoViewActivity> {
@@ -350,6 +378,20 @@ fun NetworkImage(
             alignment = alignment,
             state = state,
         )
+        if (loadFailed && autoRetried) {
+            Text(
+                text = stringResource(id = R.string.tip_image_load_failed),
+                style = MaterialTheme.typography.caption,
+                color = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(
+                        androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f),
+                        RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
     }
 }
 
