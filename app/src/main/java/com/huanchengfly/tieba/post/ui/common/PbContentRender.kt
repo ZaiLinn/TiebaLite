@@ -217,7 +217,9 @@ data class VideoContentRender(
                     com.huanchengfly.tieba.post.ui.widgets.compose.VideoPlayer(
                         videoUrl = videoUrl,
                         thumbnailUrl = picUrl,
-                        modifier = picModifier
+                        modifier = picModifier,
+                        videoWidth = width,
+                        videoHeight = height,
                     )
                 }
             } else {

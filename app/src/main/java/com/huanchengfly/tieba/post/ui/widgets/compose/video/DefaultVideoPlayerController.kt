@@ -346,6 +346,10 @@ internal class DefaultVideoPlayerController(
     }
 
     fun playerViewAvailable(playerView: PlayerView) {
+        // 全屏切换会换一个 PlayerView，先把旧的解绑，画面切到新 Surface 上继续播
+        if (this.playerView !== playerView) {
+            this.playerView?.player = null
+        }
         this.playerView = playerView
         playerView.player = exoPlayer
         playerView.setBackgroundColor(videoPlayerBackgroundColor)
@@ -377,6 +381,9 @@ internal class DefaultVideoPlayerController(
     override fun release() {
         Log.i("VideoPlayerController", "$this release")
         if (released.compareAndSet(false, true)) {
+            // 进度轮询会访问 exoPlayer getter，不停掉会在 release 后重新建一个播放器
+            updateDurationAndPositionJob?.cancel()
+            autoHideControllerJob?.cancel()
             exoPlayer.release()
             previewExoPlayer.release()
             _exoPlayer = null

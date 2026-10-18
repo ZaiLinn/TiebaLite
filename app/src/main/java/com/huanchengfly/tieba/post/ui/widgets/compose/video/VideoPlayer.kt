@@ -63,7 +63,7 @@ fun rememberVideoPlayerController(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    return rememberSaveable(
+    val controller = rememberSaveable(
         context, coroutineScope,
         saver = object : Saver<DefaultVideoPlayerController, VideoPlayerState> {
             override fun restore(value: VideoPlayerState): DefaultVideoPlayerController {
@@ -95,6 +95,17 @@ fun rememberVideoPlayerController(
             }
         }
     )
+
+    // 播放器生命周期跟随 controller，而不是画面：切换全屏时画面会在两个 composition 间重建，
+    // 若跟着画面 release/initialize，进全屏就会重新缓冲并停住
+    DisposableEffect(controller) {
+        controller.initialize()
+        onDispose {
+            controller.release()
+        }
+    }
+
+    return controller
 }
 
 @Composable
@@ -113,13 +124,6 @@ fun VideoPlayer(
         videoPlayerController.videoPlayerBackgroundColor = backgroundColor.value.toInt()
         videoPlayerController.enableControls(controlsEnabled)
         videoPlayerController.enableGestures(gesturesEnabled)
-    }
-
-    DisposableEffect(Unit) {
-        videoPlayerController.initialize()
-        onDispose {
-            videoPlayerController.release()
-        }
     }
 
     CompositionLocalProvider(
