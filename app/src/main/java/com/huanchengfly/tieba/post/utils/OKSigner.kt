@@ -3,8 +3,10 @@ package com.huanchengfly.tieba.post.utils
 import android.content.Context
 import android.util.Log
 import com.huanchengfly.tieba.post.api.TiebaApi
+import com.huanchengfly.tieba.post.api.models.CommonResponse
 import com.huanchengfly.tieba.post.api.models.MSignBean
 import com.huanchengfly.tieba.post.api.models.SignResultBean
+import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaApiException
 import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorCode
 import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import com.huanchengfly.tieba.post.models.SignDataBean
@@ -16,7 +18,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.concurrent.ThreadLocalRandom
-import kotlin.properties.Delegates
 
 abstract class IOKSigner(
     context: Context
@@ -113,13 +114,19 @@ class SingleAccountSigner(
     override suspend fun start(): Boolean {
         var result = false
         signData.clear()
-        var userName by Delegates.notNull<String>()
-        var tbs by Delegates.notNull<String>()
+        // 先用本地保存的账号信息兜底：刷新账号（登录、zid、用户信息）任一步失败，
+        // 之前会直接抛出让签到进程崩掉，表现为点了一键签到毫无反应
+        var userName = account.name
+        var tbs = account.tbs
         Log.i(TAG, "start")
 
-        AccountUtil.fetchAccountFlow(account).collect { acc ->
-            userName = acc.name
-            tbs = acc.tbs
+        try {
+            AccountUtil.fetchAccountFlow(account).collect { acc ->
+                userName = acc.name
+                tbs = acc.tbs
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "refresh account failed, use saved account info", e)
         }
 
         // Collect ALL followed forums via paginated API
@@ -129,6 +136,7 @@ class SingleAccountSigner(
         var page = 1
         var hasMore = true
         val pageSize = 200
+        var fetchFailure: Throwable? = null
 
         while (hasMore) {
             try {
@@ -147,10 +155,18 @@ class SingleAccountSigner(
                         }
                     }
                     hasMore = body.hasMore == "1"
+                    if (allForums.isEmpty() && body.errorCode != "0") {
+                        fetchFailure = TiebaApiException(
+                            CommonResponse(body.errorCode.toIntOrNull() ?: -1, body.errorMsg)
+                        )
+                    }
                 } else {
+                    fetchFailure = Exception("HTTP ${response.code()}")
                     hasMore = false
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.w(TAG, "fetch forum list failed", e)
+                fetchFailure = e
                 hasMore = false
             }
             page++
@@ -159,7 +175,17 @@ class SingleAccountSigner(
         Log.i(TAG, "Collected ${allForums.size} forums for signing")
 
         if (allForums.isEmpty()) {
-            mProgressListener?.onFinish(false, 0, 0)
+            // 拉取关注列表失败时之前会显示「没有可签到的吧」，让人以为签到正常结束了
+            val failure = fetchFailure
+            withContext(Dispatchers.Main) {
+                if (failure != null) {
+                    mProgressListener?.onFailure(
+                        0, 0, failure.getErrorCode(), failure.getErrorMessage()
+                    )
+                } else {
+                    mProgressListener?.onFinish(false, 0, 0)
+                }
+            }
             return false
         }
 

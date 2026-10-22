@@ -71,6 +71,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.accompanist.placeholder.placeholder
+import androidx.core.app.NotificationManagerCompat
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.arch.GlobalEvent
 import com.huanchengfly.tieba.post.arch.collectPartialAsState
@@ -96,6 +97,8 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.accountNavIconIfCompact
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberMenuState
 import com.huanchengfly.tieba.post.ui.widgets.compose.states.StateScreen
+import com.huanchengfly.tieba.post.toastShort
+import com.huanchengfly.tieba.post.utils.AccountUtil
 import com.huanchengfly.tieba.post.utils.AccountUtil.LocalAccount
 import com.huanchengfly.tieba.post.utils.ImageUtil
 import com.huanchengfly.tieba.post.utils.TiebaUtil
@@ -459,7 +462,26 @@ fun HomePage(
                         icon = ImageVector.vectorResource(id = R.drawable.ic_oksign),
                         contentDescription = stringResource(id = R.string.title_oksign)
                     ) {
-                        TiebaUtil.startSign(context)
+                        // 之前点了之后要等拉完关注列表才有提示，没有通知权限时则全程无反馈
+                        if (!AccountUtil.isLoggedIn()) {
+                            context.toastShort(R.string.text_login_first)
+                        } else {
+                            runCatching { TiebaUtil.startSign(context) }
+                                .onSuccess {
+                                    context.toastShort(
+                                        if (NotificationManagerCompat.from(context).areNotificationsEnabled())
+                                            R.string.toast_oksign_preparing
+                                        else
+                                            R.string.toast_oksign_preparing_no_notification
+                                    )
+                                }
+                                .onFailure {
+                                    context.toastShort(
+                                        R.string.toast_oksign_failed,
+                                        it.message ?: context.getString(R.string.error_unknown)
+                                    )
+                                }
+                        }
                     }
                     ActionItem(
                         icon = Icons.Outlined.ViewAgenda,

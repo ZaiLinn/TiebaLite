@@ -29,6 +29,7 @@
     <uses-permission android:name="com.miui.personalassistant.permission.FAVORITE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <supports-screens
         android:anyDensity="true"
