@@ -249,9 +249,10 @@ fun NetworkImage(
     var shouldLoad by remember { mutableStateOf(shouldLoadImage(context, skipNetworkCheck)) }
     val enableClick = remember(photoViewData, shouldLoad) { photoViewData != null || !shouldLoad }
 
+    // 原先是 60% 黑色遮罩，夜间缩略图暗到看不清内容；降到 20%，只压掉刺眼的高光
     val colorMask =
         if (ExtendedTheme.colors.isNightMode && context.appPreferences.imageDarkenWhenNightMode) {
-            MaskTransformation(Color.parseColor("#99000000"))
+            MaskTransformation(Color.parseColor("#33000000"))
         } else null
 
     var layoutSize by remember { mutableStateOf(IntSize.Zero) }

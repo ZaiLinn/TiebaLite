@@ -1,11 +1,20 @@
 package com.huanchengfly.tieba.post.ui.page.settings.oksign
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import android.text.format.DateUtils
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material.SnackbarResult
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BatteryAlert
@@ -42,11 +51,79 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.LocalSnackbarHostState
 import com.huanchengfly.tieba.post.ui.widgets.compose.MyScaffold
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
 import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
+import com.huanchengfly.tieba.post.utils.PermissionUtils
+import com.huanchengfly.tieba.post.utils.TiebaUtil
 import com.huanchengfly.tieba.post.utils.isIgnoringBatteryOptimizations
 import com.huanchengfly.tieba.post.utils.powerManager
 import com.huanchengfly.tieba.post.utils.requestIgnoreBatteryOptimizations
 import androidx.navigation.NavHostController
+import com.huanchengfly.tieba.post.utils.requestPermission
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * 切换自动签到或修改签到时间后立即重新安排闹钟，并告诉用户结果。
+ * 之前只写入了设置，要等下次冷启动才生效，点了没有任何反馈。
+ */
+private fun applyAutoSign(
+    context: Context,
+    coroutineScope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    enabled: Boolean,
+    time: String? = null,
+) {
+    val nextTime = runCatching {
+        if (time != null) TiebaUtil.initAutoSign(context, enabled, time)
+        else TiebaUtil.initAutoSign(context, enabled)
+    }.onFailure {
+        Log.e("OKSignSettingsPage", "initAutoSign failed", it)
+    }.getOrNull()
+    if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        context.requestPermission {
+            permissions = listOf(PermissionUtils.POST_NOTIFICATIONS)
+            description = context.getString(R.string.desc_permission_post_notifications)
+        }
+    }
+    coroutineScope.launch {
+        snackbarHostState.currentSnackbarData?.dismiss()
+        if (!enabled) {
+            snackbarHostState.showSnackbar(context.getString(R.string.toast_auto_sign_off))
+            return@launch
+        }
+        if (nextTime == null) {
+            snackbarHostState.showSnackbar(context.getString(R.string.error_unknown))
+            return@launch
+        }
+        val timeText = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(nextTime))
+        val nextText = context.getString(
+            if (DateUtils.isToday(nextTime)) R.string.text_today_time else R.string.text_tomorrow_time,
+            timeText
+        )
+        val message = context.getString(R.string.toast_auto_sign_on, nextText)
+        if (TiebaUtil.canScheduleExactAlarms(context)) {
+            snackbarHostState.showSnackbar(message)
+        } else {
+            val result = snackbarHostState.showSnackbar(
+                message = "$message\n${context.getString(R.string.toast_auto_sign_inexact)}",
+                actionLabel = context.getString(R.string.button_go_to_grant),
+                duration = SnackbarDuration.Long,
+            )
+            if (result == SnackbarResult.ActionPerformed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                runCatching {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                            Uri.parse("package:${context.packageName}")
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -126,6 +203,9 @@ fun OKSignSettingsPage(
                     defaultChecked = false,
                     summaryOn = stringResource(id = R.string.summary_auto_sign_on),
                     summaryOff = stringResource(id = R.string.summary_auto_sign),
+                    onCheckedChange = {
+                        applyAutoSign(context, coroutineScope, snackbarHostState, it)
+                    },
                 )
             }
             prefsItem {
@@ -144,7 +224,10 @@ fun OKSignSettingsPage(
                     defaultValue = "09:00",
                     summary = { stringResource(id = R.string.summary_auto_sign_time, it) },
                     dialogTitle = stringResource(id = R.string.title_auto_sign_time),
-                    enabled = depend(key = "auto_sign")
+                    enabled = depend(key = "auto_sign"),
+                    onValueSaved = {
+                        applyAutoSign(context, coroutineScope, snackbarHostState, true, it)
+                    }
                 )
             }
             prefsItem {

@@ -5,6 +5,9 @@ import android.app.IntentService
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -15,6 +18,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.api.models.SignResultBean
+import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorCode
+import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import com.huanchengfly.tieba.post.models.SignDataBean
 import com.huanchengfly.tieba.post.pendingIntentFlagImmutable
 import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
@@ -61,20 +66,30 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
             if (loginInfo != null) {
                 // onHandleIntent 跑在 IntentService 的工作线程上，返回即 stopSelf + onDestroy
                 // （会取消本 Service 的作用域）。这里必须同步等签到跑完，runBlocking 是有意为之。
-                runBlocking {
-                    SingleAccountSigner(
-                        this@OKSignService,
-                        AccountUtil.getLoginInfo()!!
-                    )
-                        .apply {
-                            setProgressListener(this@OKSignService)
-                        }
-                        .start()
+                // 拉取账号信息等步骤抛出的异常之前会直接让签到进程崩掉，用户看不到任何提示
+                runCatching {
+                    runBlocking {
+                        SingleAccountSigner(
+                            this@OKSignService,
+                            loginInfo
+                        )
+                            .apply {
+                                setProgressListener(this@OKSignService)
+                            }
+                            .start()
+                    }
+                }.onFailure {
+                    Log.e(TAG, "sign failed", it)
+                    lastSignData = null
+                    onFailure(0, 0, it.getErrorCode(), it.getErrorMessage())
                 }
             } else {
                 updateNotification(
                     getString(R.string.title_oksign_fail),
                     getString(R.string.text_login_first)
+                )
+                toastIfCannotNotify(
+                    "${getString(R.string.title_oksign_fail)}：${getString(R.string.text_login_first)}"
                 )
                 ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
             }
@@ -155,12 +170,37 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
         notificationManager.cancel(NOTIFICATION_ID)
     }
 
+    private fun canNotify(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
+        }
+        return notificationManager.areNotificationsEnabled()
+    }
+
+    /**
+     * 没有通知权限时，进度和结果通知都发不出去，签到就变成了「点了没反应」。
+     * 这种情况下用 Toast 兜底告知结果。可能在工作线程调用，统一切回主线程。
+     */
+    private fun toastIfCannotNotify(text: String) {
+        if (canNotify()) return
+        val appContext = applicationContext
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(appContext, text, Toast.LENGTH_LONG).show()
+        }
+    }
+
 
     override fun onStart(total: Int) {
         updateNotification(getString(R.string.title_start_sign), null)
         if (total > 0) Toast.makeText(
             this,
-            R.string.toast_oksign_start,
+            if (canNotify()) getString(R.string.toast_oksign_start)
+            else getString(R.string.toast_oksign_start_no_notification, total),
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -211,16 +251,18 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
     }
 
     override fun onFinish(success: Boolean, signedCount: Int, total: Int) {
+        val text = if (total > 0) getString(
+            R.string.text_oksign_done,
+            signedCount
+        ) else getString(R.string.text_oksign_no_signable)
         updateNotification(
             getString(R.string.title_oksign_finish),
-            if (total > 0) getString(
-                R.string.text_oksign_done,
-                signedCount
-            ) else getString(R.string.text_oksign_no_signable),
+            text,
             packageManager.getLaunchIntentForPackage(packageName)?.apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
         )
+        toastIfCannotNotify("${getString(R.string.title_oksign_finish)}：$text")
         sendBroadcast(Intent(ACTION_SIGN_SUCCESS_ALL))
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
     }
@@ -230,6 +272,7 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
             if (it == null) {
                 ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
                 updateNotification(getString(R.string.title_oksign_fail), errorMsg)
+                toastIfCannotNotify("${getString(R.string.title_oksign_fail)}：$errorMsg")
             } else {
                 updateNotification(
                     getString(

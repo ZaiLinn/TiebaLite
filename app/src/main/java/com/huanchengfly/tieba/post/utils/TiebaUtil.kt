@@ -48,47 +48,76 @@ object TiebaUtil {
         }
     }
 
-    fun initAutoSign(context: Context) {
+    /**
+     * 按设置安排（或取消）每日自动签到的闹钟。
+     *
+     * 设置页切换开关时 DataStore 还没写完，所以允许直接传入新值。
+     *
+     * @return 下一次触发的时间戳；关闭自动签到时返回 null
+     */
+    @JvmOverloads
+    fun initAutoSign(
+        context: Context,
+        autoSign: Boolean = context.appPreferences.autoSign,
+        autoSignTime: String = context.appPreferences.autoSignTime ?: DEFAULT_AUTO_SIGN_TIME,
+    ): Long? {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val autoSign = context.appPreferences.autoSign
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             0,
             Intent(context, AutoSignAlarm::class.java),
             pendingIntentFlagMutable()
         )
-        if (autoSign) {
-            val autoSignTimeStr = context.appPreferences.autoSignTime!!
-            val time = autoSignTimeStr.split(":").toTypedArray()
-            val hour = time[0].toInt()
-            val minute = time[1].toInt()
-            val calendar = Calendar.getInstance()
-            calendar[Calendar.HOUR_OF_DAY] = hour
-            calendar[Calendar.MINUTE] = minute
-            calendar[Calendar.SECOND] = 0
-            calendar[Calendar.MILLISECOND] = 0
-            // 若今日目标时刻已过，则顺延至明日，确保闹钟始终有效
-            if (calendar.timeInMillis <= System.currentTimeMillis()) {
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (!autoSign) {
+            alarmManager.cancel(pendingIntent)
+            return null
+        }
+        val time = autoSignTime.split(":")
+        val hour = time.getOrNull(0)?.toIntOrNull() ?: 9
+        val minute = time.getOrNull(1)?.toIntOrNull() ?: 0
+        val calendar = Calendar.getInstance()
+        calendar[Calendar.HOUR_OF_DAY] = hour
+        calendar[Calendar.MINUTE] = minute
+        calendar[Calendar.SECOND] = 0
+        calendar[Calendar.MILLISECOND] = 0
+        // 若今日目标时刻已过，则顺延至明日，确保闹钟始终有效
+        if (calendar.timeInMillis <= System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ 设置精确闹钟需要「闹钟和提醒」权限，没有权限时会直接抛 SecurityException，
+            // 之前被 runCatching 吞掉，导致自动签到从未被安排。没有权限就退回到非精确闹钟。
+            if (alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     calendar.timeInMillis,
                     pendingIntent
                 )
             } else {
-                alarmManager.setInexactRepeating(
+                alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     calendar.timeInMillis,
-                    AlarmManager.INTERVAL_DAY,
                     pendingIntent
                 )
             }
         } else {
-            alarmManager.cancel(pendingIntent)
+            alarmManager.setInexactRepeating(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                AlarmManager.INTERVAL_DAY,
+                pendingIntent
+            )
         }
+        return calendar.timeInMillis
     }
+
+    fun canScheduleExactAlarms(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        return alarmManager.canScheduleExactAlarms()
+    }
+
+    private const val DEFAULT_AUTO_SIGN_TIME = "09:00"
 
     @JvmStatic
     fun startSign(context: Context) {

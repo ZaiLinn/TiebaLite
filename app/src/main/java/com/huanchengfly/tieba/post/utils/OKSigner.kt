@@ -129,6 +129,7 @@ class SingleAccountSigner(
         var page = 1
         var hasMore = true
         val pageSize = 200
+        var fetchFailure: Throwable? = null
 
         while (hasMore) {
             try {
@@ -150,7 +151,9 @@ class SingleAccountSigner(
                 } else {
                     hasMore = false
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.w(TAG, "fetch forum list failed", e)
+                fetchFailure = e
                 hasMore = false
             }
             page++
@@ -159,7 +162,17 @@ class SingleAccountSigner(
         Log.i(TAG, "Collected ${allForums.size} forums for signing")
 
         if (allForums.isEmpty()) {
-            mProgressListener?.onFinish(false, 0, 0)
+            // 拉取关注列表失败时之前会显示「没有可签到的吧」，让人以为签到正常结束了
+            val failure = fetchFailure
+            withContext(Dispatchers.Main) {
+                if (failure != null) {
+                    mProgressListener?.onFailure(
+                        0, 0, failure.getErrorCode(), failure.getErrorMessage()
+                    )
+                } else {
+                    mProgressListener?.onFinish(false, 0, 0)
+                }
+            }
             return false
         }
 
