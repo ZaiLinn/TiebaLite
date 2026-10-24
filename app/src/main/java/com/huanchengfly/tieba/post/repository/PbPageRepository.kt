@@ -31,6 +31,7 @@ object PbPageRepository {
         back: Boolean = false,
         from: String = "",
         lastPostId: Long? = null,
+        jumpFloor: Int = 0,
     ): Flow<PbPageResponse> =
         TiebaApi.getInstance()
             .pbPageFlow(
@@ -43,7 +44,8 @@ object PbPageRepository {
                 forumId = forumId,
                 stType = from.takeIf { ST_TYPES.contains(it) }.orEmpty(),
                 mark = if (from == ThreadPageFrom.FROM_STORE) 1 else 0,
-                lastPostId = lastPostId
+                lastPostId = lastPostId,
+                jumpFloor = jumpFloor
             )
             .map { response ->
                 if (response.data_ == null) {

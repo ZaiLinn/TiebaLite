@@ -26,8 +26,10 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Face6
 import androidx.compose.material.icons.rounded.FaceRetouchingOff
+import androidx.compose.material.icons.rounded.FormatListNumbered
 import androidx.compose.material.icons.rounded.Report
 import androidx.compose.material.icons.rounded.RocketLaunch
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
@@ -114,6 +116,8 @@ internal fun ThreadMenu(
     onImmersiveModeClick: () -> Unit,
     onDescClick: () -> Unit,
     onJumpPageClick: () -> Unit,
+    onJumpFloorClick: () -> Unit,
+    onSearchClick: () -> Unit,
     onShareClick: () -> Unit,
     onCopyLinkClick: () -> Unit,
     onReportClick: () -> Unit,
@@ -229,6 +233,20 @@ internal fun ThreadMenu(
                 text = stringResource(id = R.string.title_jump_page),
                 iconColor = ExtendedTheme.colors.text,
                 onClick = onJumpPageClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ListMenuItem(
+                icon = Icons.Rounded.FormatListNumbered,
+                text = stringResource(id = R.string.title_jump_floor),
+                iconColor = ExtendedTheme.colors.text,
+                onClick = onJumpFloorClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ListMenuItem(
+                icon = Icons.Rounded.Search,
+                text = stringResource(id = R.string.title_thread_search),
+                iconColor = ExtendedTheme.colors.text,
+                onClick = onSearchClick,
                 modifier = Modifier.fillMaxWidth(),
             )
             ListMenuItem(

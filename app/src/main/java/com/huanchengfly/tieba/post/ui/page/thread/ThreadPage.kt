@@ -55,6 +55,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -438,6 +440,8 @@ fun ThreadPage(
         }
     }
     viewModel.onEvent<ThreadUiEvent.LoadSuccess> {
+        // 跳到楼层时由 jumpToFloor 自己滚动
+        if (it.jumpFloor > 0) return@onEvent
         if (it.page > 1 || waitLoadSuccessAndScrollToFirstReply) {
             waitLoadSuccessAndScrollToFirstReply = false
             lazyListState.animateScrollToItem(1)
@@ -534,6 +538,105 @@ fun ThreadPage(
                 )
             )
         }
+    )
+
+    // 列表里楼层前面依次是：1 楼、帖子标题栏、（倒序时的最新回复及其提示）、「加载上一页」
+    fun listIndexOfPost(postId: Long): Int? {
+        if (firstPost?.get { id } == postId) return 0
+        val index = data.indexOfFirst { it.post.get { id } == postId }
+        if (index < 0) return null
+        val latestCount = if (curSortType == ThreadSortType.SORT_TYPE_DESC && latestPosts.isNotEmpty()) {
+            latestPosts.size + 1
+        } else 0
+        return 3 + latestCount + index
+    }
+
+    /** 滚动到已加载的楼层；目标楼层被删时停在它后面最近的一层。不在已加载范围内返回 false */
+    fun scrollToLoadedFloor(floor: Int): Boolean {
+        if (floor <= 1) {
+            coroutineScope.launch { lazyListState.animateScrollToItem(0) }
+            return true
+        }
+        val floors = data.map { it.post.get { this.floor } }
+        if (floors.isEmpty() || floor < floors.min() || floor > floors.max()) return false
+        val target = data.filter { it.post.get { this.floor } >= floor }
+            .minByOrNull { it.post.get { this.floor } } ?: return false
+        val index = listIndexOfPost(target.post.get { id }) ?: return false
+        coroutineScope.launch { lazyListState.animateScrollToItem(index) }
+        return true
+    }
+
+    fun jumpToFloor(floor: Int) {
+        if (scrollToLoadedFloor(floor)) return
+        val dataBefore = data
+        val errorBefore = error
+        coroutineScope.launch {
+            viewModel.send(
+                ThreadUiIntent.Load(
+                    threadId = threadId,
+                    forumId = forum?.get { id } ?: forumId,
+                    page = 0,
+                    seeLz = isSeeLz,
+                    sortType = curSortType,
+                    from = from,
+                    jumpFloor = floor,
+                )
+            )
+            // 等这次加载的结果落到界面状态上（成功换了列表，或者失败换了 error）
+            val loaded = withTimeoutOrNull(20_000) {
+                snapshotFlow { Triple(data, error, isRefreshing) }
+                    .first { (d, e, refreshing) -> !refreshing && (d !== dataBefore || e !== errorBefore) }
+            }
+            if (loaded == null || data === dataBefore) return@launch
+            if (!scrollToLoadedFloor(floor)) {
+                scaffoldState.snackbarHostState.showSnackbar(
+                    context.getString(R.string.toast_jump_floor_not_found, floor)
+                )
+            }
+        }
+    }
+
+    val jumpToFloorDialogState = rememberDialogState()
+    JumpToFloorDialog(
+        dialogState = jumpToFloorDialogState,
+        onJump = { jumpToFloor(it) },
+    )
+
+    val searchDialogState = rememberDialogState()
+    val searchResultDialogState = rememberDialogState()
+    var searchKeyword by remember { mutableStateOf("") }
+    var searchHits by remember { mutableStateOf(emptyList<ThreadSearchHit>()) }
+    ThreadSearchDialog(
+        dialogState = searchDialogState,
+        loadedFloorCount = data.size + (if (firstPost != null) 1 else 0),
+        onSearch = { keyword ->
+            if (keyword.isBlank()) return@ThreadSearchDialog
+            val posts = buildList {
+                firstPost?.get()?.let { post ->
+                    add(
+                        SearchablePost(
+                            post.id,
+                            post.floor.coerceAtLeast(1),
+                            firstPostContentRenders.joinToString("\n") { it.toString() }
+                        )
+                    )
+                }
+                data.mapTo(this) { it.toSearchable() }
+            }
+            searchKeyword = keyword.trim()
+            searchHits = searchPosts(posts, keyword)
+            searchResultDialogState.show()
+        },
+    )
+    ThreadSearchResultDialog(
+        dialogState = searchResultDialogState,
+        keyword = searchKeyword,
+        hits = searchHits,
+        onHitClick = { hit ->
+            listIndexOfPost(hit.postId)?.let { index ->
+                coroutineScope.launch { lazyListState.animateScrollToItem(index) }
+            }
+        },
     )
 
     LaunchedEffect(Unit) {
@@ -899,6 +1002,14 @@ fun ThreadPage(
                             onJumpPageClick = {
                                 closeBottomSheet()
                                 jumpToPageDialogState.show()
+                            },
+                            onJumpFloorClick = {
+                                closeBottomSheet()
+                                jumpToFloorDialogState.show()
+                            },
+                            onSearchClick = {
+                                closeBottomSheet()
+                                searchDialogState.show()
                             },
                             onShareClick = {
                                 TiebaUtil.shareText(

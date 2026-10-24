@@ -260,6 +260,13 @@
     <string name="text_please_wait">请稍候……</string>
     <string name="title_loading_data">正在加载数据</string>
     <string name="text_oksign_no_signable">没有可签到的吧</string>
+    <string name="title_jump_floor">跳到楼层</string>
+    <string name="toast_jump_floor_not_found">没找到第 %1$d 楼，可能已被删除或超出范围</string>
+    <string name="title_thread_search">帖内搜索</string>
+    <string name="tip_thread_search">在已加载的 %1$d 层楼里搜索正文和楼中楼</string>
+    <string name="title_thread_search_result">“%1$s” %2$d 处</string>
+    <string name="tip_thread_search_no_result">已加载的楼层里没有找到。往下翻加载更多楼层后可以再搜</string>
+    <string name="button_close">关闭</string>
     <string name="title_backup">备份数据</string>
     <string name="summary_backup">把设置、屏蔽规则、草稿、置顶的吧和浏览历史导出成文件。不含账号登录信息</string>
     <string name="title_restore">恢复数据</string>

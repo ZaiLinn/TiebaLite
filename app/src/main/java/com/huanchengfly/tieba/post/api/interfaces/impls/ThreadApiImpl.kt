@@ -323,6 +323,7 @@ object ThreadApiImpl : IThreadApi {
         stType: String,
         mark: Int,
         lastPostId: Long?,
+        jumpFloor: Int,
     ): Flow<PbPageResponse> {
         return RetrofitTiebaApi.OFFICIAL_PROTOBUF_TIEBA_V12_API.pbPageFlow(
             buildProtobufRequestBody(
@@ -353,8 +354,8 @@ object ThreadApiImpl : IThreadApi {
                         immersion_video_comment_source = 0,
                         is_comm_reverse = 0,
                         is_fold_comment_req = 0,
-                        is_jumpfloor = 0,
-                        jumpfloor_num = 0,
+                        is_jumpfloor = if (jumpFloor > 0) 1 else 0,
+                        jumpfloor_num = jumpFloor,
                         need_repost_recommend_forum = 0,
                         obj_locate = "",
                         obj_param1 = "10",

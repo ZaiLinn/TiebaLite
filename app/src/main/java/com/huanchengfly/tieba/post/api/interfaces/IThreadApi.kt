@@ -421,6 +421,7 @@ interface IThreadApi {
         stType: String = "",
         mark: Int = 0,
         lastPostId: Long? = null,
+        jumpFloor: Int = 0,
     ): Flow<PbPageResponse>
 
     /**

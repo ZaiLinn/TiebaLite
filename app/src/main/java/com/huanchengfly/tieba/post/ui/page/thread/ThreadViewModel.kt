@@ -100,7 +100,10 @@ class ThreadViewModel @Inject constructor() :
             )
 
             ThreadPartialChange.RemoveFavorite.Success -> ThreadUiEvent.RemoveFavoriteSuccess
-            is ThreadPartialChange.Load.Success -> ThreadUiEvent.LoadSuccess(partialChange.currentPage)
+            is ThreadPartialChange.Load.Success -> ThreadUiEvent.LoadSuccess(
+                partialChange.currentPage,
+                partialChange.jumpFloor
+            )
 
             is ThreadPartialChange.LoadMyLatestReply.Success -> ThreadUiEvent.ScrollToLatestReply.takeIf {
                 partialChange.hasNewPost
@@ -175,7 +178,8 @@ class ThreadViewModel @Inject constructor() :
             PbPageRepository
                 .pbPage(
                     threadId, page, postId, forumId, seeLz, sortType,
-                    from = from.takeIf { it == ThreadPageFrom.FROM_STORE }.orEmpty()
+                    from = from.takeIf { it == ThreadPageFrom.FROM_STORE }.orEmpty(),
+                    jumpFloor = jumpFloor
                 )
                 .map<PbPageResponse, ThreadPartialChange.Load> { response ->
                     if (response.data_?.page == null
@@ -208,6 +212,7 @@ class ThreadViewModel @Inject constructor() :
                         postId,
                         seeLz,
                         sortType,
+                        jumpFloor,
                     )
                 }
                 .onStart { emit(ThreadPartialChange.Load.Start) }
@@ -522,7 +527,9 @@ sealed interface ThreadUiIntent : UiIntent {
         val forumId: Long? = null,
         val seeLz: Boolean = false,
         val sortType: Int = 0,
-        val from: String = ""
+        val from: String = "",
+        /** 大于 0 时让服务器返回该楼层所在的那一页 */
+        val jumpFloor: Int = 0,
     ) : ThreadUiIntent
 
     data class LoadFirstPage(
@@ -724,6 +731,7 @@ sealed interface ThreadPartialChange : PartialChange<ThreadUiState> {
             val postId: Long = 0,
             val seeLz: Boolean = false,
             val sortType: Int = 0,
+            val jumpFloor: Int = 0,
         ) : Load()
 
         data class Failure(
@@ -1228,7 +1236,8 @@ sealed interface ThreadUiEvent : UiEvent {
     data object ScrollToLatestReply : ThreadUiEvent
 
     data class LoadSuccess(
-        val page: Int
+        val page: Int,
+        val jumpFloor: Int = 0,
     ) : ThreadUiEvent
 
     data class AddFavoriteSuccess(val floor: Int) : ThreadUiEvent
