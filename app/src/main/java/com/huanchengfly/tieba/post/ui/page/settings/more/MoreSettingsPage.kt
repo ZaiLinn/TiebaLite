@@ -1,14 +1,21 @@
 package com.huanchengfly.tieba.post.ui.page.settings.more
 
+import android.content.Context
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.OfflineBolt
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,10 +48,17 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.MyScaffold
 import com.huanchengfly.tieba.post.ui.widgets.compose.Sizes
 import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
+import com.huanchengfly.tieba.post.utils.BackupManager
 import com.huanchengfly.tieba.post.utils.ImageCacheUtil
 import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.concurrent.thread
+
+private fun BackupManager.Summary.describe(context: Context): String =
+    context.getString(R.string.text_backup_summary, preferences, blocks, drafts, topForums, histories)
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -83,6 +97,46 @@ fun MoreSettingsPage(
             title = { Text(text = stringResource(id = R.string.title_private_message_experimental)) },
         ) {
             Text(text = stringResource(id = R.string.message_private_message_risk))
+        }
+        val backupLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/json")
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            coroutineScope.launch {
+                val message = runCatching { BackupManager.export(context, uri) }
+                    .fold(
+                        onSuccess = { context.getString(R.string.toast_backup_success, it.describe(context)) },
+                        onFailure = {
+                            Log.e("MoreSettingsPage", "backup failed", it)
+                            context.getString(R.string.toast_backup_failed, it.message.orEmpty())
+                        }
+                    )
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+        val restoreLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            coroutineScope.launch {
+                val message = runCatching { BackupManager.import(context, uri) }
+                    .fold(
+                        onSuccess = { context.getString(R.string.toast_restore_success, it.describe(context)) },
+                        onFailure = {
+                            Log.e("MoreSettingsPage", "restore failed", it)
+                            context.getString(R.string.toast_restore_failed, it.message.orEmpty())
+                        }
+                    )
+                snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Long)
+            }
+        }
+        val restoreDialogState = rememberDialogState()
+        ConfirmDialog(
+            dialogState = restoreDialogState,
+            onConfirm = { restoreLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
+            title = { Text(text = stringResource(id = R.string.title_restore)) },
+        ) {
+            Text(text = stringResource(id = R.string.message_restore_confirm))
         }
         LaunchedEffect(Unit) {
             thread {
@@ -161,6 +215,43 @@ fun MoreSettingsPage(
                             )
                         }
                     },
+                )
+            }
+            prefsItem {
+                TextPref(
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.Backup,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    enabled = true,
+                    title = stringResource(id = R.string.title_backup),
+                    summary = stringResource(id = R.string.summary_backup),
+                    onClick = {
+                        val date = SimpleDateFormat("yyyyMMdd-HHmm", Locale.getDefault()).format(Date())
+                        backupLauncher.launch("tiebalite-backup-$date.json")
+                    },
+                )
+            }
+            prefsItem {
+                TextPref(
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.SettingsBackupRestore,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    enabled = true,
+                    title = stringResource(id = R.string.title_restore),
+                    summary = stringResource(id = R.string.summary_restore),
+                    onClick = { restoreDialogState.show() },
                 )
             }
             prefsItem {

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import org.litepal.LitePal
+import org.litepal.extension.findAll
 import org.litepal.extension.delete
 import org.litepal.extension.findAllAsync
 
@@ -108,6 +109,15 @@ object BlockManager {
     fun init() {
         LitePal.findAllAsync<Block>().listen { blocks ->
             updateRules { addAll(blocks) }
+        }
+    }
+
+    /** 数据库被外部改过（如导入备份）后重新读取全部规则，在后台线程调用 */
+    fun reload() {
+        val blocks = LitePal.findAll<Block>()
+        updateRules {
+            clear()
+            addAll(blocks)
         }
     }
 

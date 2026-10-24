@@ -260,6 +260,16 @@
     <string name="text_please_wait">请稍候……</string>
     <string name="title_loading_data">正在加载数据</string>
     <string name="text_oksign_no_signable">没有可签到的吧</string>
+    <string name="title_backup">备份数据</string>
+    <string name="summary_backup">把设置、屏蔽规则、草稿、置顶的吧和浏览历史导出成文件。不含账号登录信息</string>
+    <string name="title_restore">恢复数据</string>
+    <string name="summary_restore">从备份文件导入，与现有数据合并</string>
+    <string name="message_restore_confirm">备份里的设置会覆盖当前设置；屏蔽规则、草稿、置顶的吧和浏览历史会与现有数据合并，不会删除现有内容。部分设置（如主题）重启应用后生效。</string>
+    <string name="text_backup_summary">设置 %1$d 项，屏蔽规则 %2$d 条，草稿 %3$d 条，置顶的吧 %4$d 个，浏览历史 %5$d 条</string>
+    <string name="toast_backup_success">已备份：%1$s</string>
+    <string name="toast_backup_failed">备份失败：%1$s</string>
+    <string name="toast_restore_success">已恢复：%1$s。部分设置重启后生效</string>
+    <string name="toast_restore_failed">恢复失败：%1$s</string>
     <string name="text_oksign_done_with_failed">共签到 %1$d 个吧，%2$d 个失败</string>
     <string name="text_oksign_no_failed">没有需要重签的吧</string>
     <string name="title_oksign_official_signing">正在使用官方一键签到</string>
