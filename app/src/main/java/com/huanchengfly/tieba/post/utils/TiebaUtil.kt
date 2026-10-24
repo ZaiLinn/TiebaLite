@@ -132,14 +132,11 @@ object TiebaUtil {
 //                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 //                .setAction(OKSignService.ACTION_START_SIGN)
 //        )
+        // applicationId 已改为 com.zailinn.tiebalite，与代码包名不同；
+        // 之前用 "${packageName}.services.OKSignService" 拼类名，组件不存在，Service 根本起不来
         ContextCompat.startForegroundService(
             context,
-            Intent()
-                .setClassName(
-                    context.packageName,
-                    "${context.packageName}.services.OKSignService"
-                )
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Intent(context, OKSignService::class.java)
                 .setAction(OKSignService.ACTION_START_SIGN)
         )
     }
