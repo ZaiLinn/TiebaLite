@@ -3,6 +3,7 @@ package com.huanchengfly.tieba.post.update
 import android.os.Build
 import android.util.Log
 import com.huanchengfly.tieba.post.BuildConfig
+import com.huanchengfly.tieba.post.utils.AppLog
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -33,6 +34,9 @@ object UpdateDownloader {
 
     private const val GITHUB_API_ROOT = "https://api.github.com/repos/ZaiLinn/TiebaLite"
 
+    /** 网页地址：Releases API 匿名限额按 IP 计（60 次/小时），VPN 等共享出口常被用完，此时改走网页 */
+    private const val GITHUB_WEB_ROOT = "https://github.com/ZaiLinn/TiebaLite"
+
     /** 平台来源对应的 Releases API 根地址。 */
     fun rootFor(origin: UpdateOrigin): String = when (origin) {
         UpdateOrigin.GITHUB -> GITHUB_API_ROOT
@@ -58,8 +62,47 @@ object UpdateDownloader {
      * 403/网络失败返回 null，由调用方处理。
      */
     fun fetchStableRelease(root: String = apiRoot, cacheDir: File? = null): GitHubRelease? {
-        val json = httpGetConditional("${root.trimEnd('/')}/releases?per_page=10", cacheDir) ?: return null
+        val json = httpGetConditional("${root.trimEnd('/')}/releases?per_page=10", cacheDir)
+        if (json == null) {
+            // 只对官方地址兜底（debug mock 源不走网页）
+            return if (root.trimEnd('/') == GITHUB_API_ROOT) fetchLatestStableFromWeb() else null
+        }
         return pickLatestStable(GitHubRelease.fromJsonArray(json))
+    }
+
+    /**
+     * 不经 API 获取最新正式版：releases/latest 会 302 到最新正式版（不含预发布）的 tag 页，
+     * expanded_assets/<tag> 页面里有 APK 下载链接。网页拿不到更新说明和 SHA-256，
+     * 所以没有强更判断，下载后也不做完整性校验（安装页会提示未校验）。
+     */
+    private fun fetchLatestStableFromWeb(): GitHubRelease? {
+        return try {
+            val conn = openConnection("$GITHUB_WEB_ROOT/releases/latest") ?: return null
+            conn.instanceFollowRedirects = false
+            val code = conn.responseCode
+            val tag = parseTagFromReleaseLocation(conn.getHeaderField("Location").orEmpty())
+            conn.disconnect()
+            if (tag == null || tag.contains("-ai.")) {
+                AppLog.d(TAG, "web fallback: no stable tag (HTTP $code)")
+                return null
+            }
+            val html = httpGet("$GITHUB_WEB_ROOT/releases/expanded_assets/$tag") ?: return null
+            val href = findReleaseApkHref(html, tag)
+            AppLog.d(TAG, "web fallback: tag=$tag apk=$href")
+            GitHubRelease(
+                tagName = tag,
+                name = tag,
+                htmlUrl = "$GITHUB_WEB_ROOT/releases/tag/$tag",
+                body = "",
+                isPrerelease = false,
+                apkUrl = href?.let { "https://github.com$it" },
+                apkName = href?.substringAfterLast('/'),
+                apkDigest = null
+            )
+        } catch (e: Exception) {
+            AppLog.d(TAG, "web fallback failed: $e")
+            null
+        }
     }
 
     /**
@@ -174,7 +217,11 @@ object UpdateDownloader {
                 if (code in 200..299) conn.inputStream.use { it.bufferedReader().readText() } else null
             val resolved = resolveListingBody(code, cached, freshBody)
             if (resolved == null && code != 304) {
-                Log.w(TAG, "HTTP $code for $url")
+                // 403/429 且剩余次数为 0 即匿名限额用完
+                AppLog.d(
+                    TAG,
+                    "HTTP $code for $url, ratelimit-remaining=${conn.getHeaderField("X-RateLimit-Remaining")}"
+                )
             }
             if (code in 200..299 && freshBody != null) {
                 val etag = conn.getHeaderField("ETag")
@@ -182,7 +229,7 @@ object UpdateDownloader {
             }
             resolved
         } catch (e: Exception) {
-            Log.w(TAG, "httpGetConditional failed: $e")
+            AppLog.d(TAG, "httpGetConditional failed: $e")
             null
         }
     }
@@ -236,6 +283,19 @@ internal fun resolveListingBody(code: Int, cached: CachedListing?, freshBody: St
         code in 200..299 -> freshBody
         else -> null
     }
+
+/** 从 releases/latest 的跳转地址（…/releases/tag/<tag>）取出 tag，非该格式返回 null */
+internal fun parseTagFromReleaseLocation(location: String): String? =
+    location.substringAfter("/releases/tag/", "").substringBefore('?').takeIf { it.isNotBlank() }
+
+/** 在 expanded_assets 页面里找发版 APK（release-*.apk，文件名含版本号）的下载路径 */
+internal fun findReleaseApkHref(html: String, tagName: String): String? {
+    val versionName = tagName.removePrefix("v")
+    return Regex("""href="(/[^"]+/releases/download/[^"]+/(release-[^"/]+\.apk))"""")
+        .findAll(html)
+        .firstOrNull { it.groupValues[2].contains(versionName) }
+        ?.groupValues?.get(1)
+}
 
 /**
  * ai 通道候选集选版（生产侧纯函数，可 JVM 单测）：
