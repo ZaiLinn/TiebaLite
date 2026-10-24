@@ -24,6 +24,7 @@ import com.huanchengfly.tieba.post.models.SignDataBean
 import com.huanchengfly.tieba.post.pendingIntentFlagImmutable
 import com.huanchengfly.tieba.post.ui.common.theme.utils.ThemeUtils
 import com.huanchengfly.tieba.post.utils.AccountUtil
+import com.huanchengfly.tieba.post.utils.OKSignRecord
 import com.huanchengfly.tieba.post.utils.ProgressListener
 import com.huanchengfly.tieba.post.utils.SingleAccountSigner
 import com.huanchengfly.tieba.post.utils.extension.addFlag
@@ -47,7 +48,7 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.i(TAG, "onStartCommand")
-        if (intent?.action == ACTION_START_SIGN) {
+        if (intent?.action == ACTION_START_SIGN || intent?.action == ACTION_RETRY_FAILED) {
             startForeground(
                 NOTIFICATION_ID,
                 buildNotification(
@@ -61,9 +62,19 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
 
     override fun onHandleIntent(intent: Intent?) {
         Log.i(TAG, "onHandleWork")
-        if (intent?.action == ACTION_START_SIGN) {
+        val retry = intent?.action == ACTION_RETRY_FAILED
+        if (intent?.action == ACTION_START_SIGN || retry) {
             val loginInfo = AccountUtil.getLoginInfo()
-            if (loginInfo != null) {
+            val retryForums = if (retry) OKSignRecord.load(this)?.failures.orEmpty() else null
+            if (loginInfo != null && retryForums != null && retryForums.isEmpty()) {
+                updateNotification(
+                    getString(R.string.title_oksign_finish),
+                    getString(R.string.text_oksign_no_failed),
+                    null
+                )
+                toastIfCannotNotify(getString(R.string.text_oksign_no_failed))
+                ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_DETACH)
+            } else if (loginInfo != null) {
                 // onHandleIntent 跑在 IntentService 的工作线程上，返回即 stopSelf + onDestroy
                 // （会取消本 Service 的作用域）。这里必须同步等签到跑完，runBlocking 是有意为之。
                 // 拉取账号信息等步骤抛出的异常之前会直接让签到进程崩掉，用户看不到任何提示
@@ -71,7 +82,8 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
                     runBlocking {
                         SingleAccountSigner(
                             this@OKSignService,
-                            loginInfo
+                            loginInfo,
+                            retryForums
                         )
                             .apply {
                                 setProgressListener(this@OKSignService)
@@ -124,7 +136,12 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
             .setColor(ThemeUtils.getColorByAttr(this, R.attr.colorPrimary))
     }
 
-    private fun updateNotification(title: String, text: String, intent: Intent?) {
+    private fun updateNotification(
+        title: String,
+        text: String,
+        intent: Intent?,
+        retryCount: Int = 0,
+    ) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
@@ -147,6 +164,13 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
                         )
 
                     }
+                    if (retryCount > 0) {
+                        addAction(
+                            0,
+                            getString(R.string.button_oksign_retry_failed, retryCount),
+                            retryPendingIntent()
+                        )
+                    }
                 }
                 .build()
         )
@@ -164,6 +188,15 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
             .build()
         notification.flags = notification.flags.addFlag(NotificationCompat.FLAG_ONGOING_EVENT)
         notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun retryPendingIntent(): PendingIntent {
+        val intent = Intent(this, OKSignService::class.java).setAction(ACTION_RETRY_FAILED)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PendingIntent.getForegroundService(this, 1, intent, pendingIntentFlagImmutable())
+        } else {
+            PendingIntent.getService(this, 1, intent, pendingIntentFlagImmutable())
+        }
     }
 
     private fun clearNotification() {
@@ -203,6 +236,10 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
             else getString(R.string.toast_oksign_start_no_notification, total),
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    override fun onOfficialSignStart() {
+        updateNotification(getString(R.string.title_oksign_official_signing), null)
     }
 
     override fun onDestroy() {
@@ -251,16 +288,19 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
     }
 
     override fun onFinish(success: Boolean, signedCount: Int, total: Int) {
-        val text = if (total > 0) getString(
-            R.string.text_oksign_done,
-            signedCount
-        ) else getString(R.string.text_oksign_no_signable)
+        val failedCount = total - signedCount
+        val text = when {
+            total <= 0 -> getString(R.string.text_oksign_no_signable)
+            failedCount > 0 -> getString(R.string.text_oksign_done_with_failed, signedCount, failedCount)
+            else -> getString(R.string.text_oksign_done, signedCount)
+        }
         updateNotification(
             getString(R.string.title_oksign_finish),
             text,
             packageManager.getLaunchIntentForPackage(packageName)?.apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
+            },
+            retryCount = failedCount
         )
         toastIfCannotNotify("${getString(R.string.title_oksign_finish)}：$text")
         sendBroadcast(Intent(ACTION_SIGN_SUCCESS_ALL))
@@ -300,5 +340,7 @@ class OKSignService : IntentService(TAG), CoroutineScope, ProgressListener {
         const val ACTION_SIGN_SUCCESS_ALL =
             "com.huanchengfly.tieba.post.service.action.SIGN_SUCCESS_ALL"
         const val ACTION_START_SIGN = "com.huanchengfly.tieba.post.service.action.ACTION_SIGN_START"
+        const val ACTION_RETRY_FAILED =
+            "com.huanchengfly.tieba.post.service.action.ACTION_SIGN_RETRY_FAILED"
     }
 }

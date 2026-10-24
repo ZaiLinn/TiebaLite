@@ -119,8 +119,12 @@ object TiebaUtil {
 
     private const val DEFAULT_AUTO_SIGN_TIME = "09:00"
 
+    /**
+     * @param retryFailed 只重签上次签到失败的吧（见 [OKSignRecord]）
+     */
     @JvmStatic
-    fun startSign(context: Context) {
+    @JvmOverloads
+    fun startSign(context: Context, retryFailed: Boolean = false) {
         context.appPreferences.signDay = Calendar.getInstance()[Calendar.DAY_OF_MONTH]
 //        OKSignService.enqueueWork(
 //            context,
@@ -137,7 +141,10 @@ object TiebaUtil {
         ContextCompat.startForegroundService(
             context,
             Intent(context, OKSignService::class.java)
-                .setAction(OKSignService.ACTION_START_SIGN)
+                .setAction(
+                    if (retryFailed) OKSignService.ACTION_RETRY_FAILED
+                    else OKSignService.ACTION_START_SIGN
+                )
         )
     }
 

@@ -260,6 +260,17 @@
     <string name="text_please_wait">请稍候……</string>
     <string name="title_loading_data">正在加载数据</string>
     <string name="text_oksign_no_signable">没有可签到的吧</string>
+    <string name="text_oksign_done_with_failed">共签到 %1$d 个吧，%2$d 个失败</string>
+    <string name="text_oksign_no_failed">没有需要重签的吧</string>
+    <string name="title_oksign_official_signing">正在使用官方一键签到</string>
+    <string name="button_oksign_retry_failed">重签失败的 %1$d 个</string>
+    <string name="title_oksign_last_record">上次签到</string>
+    <string name="summary_oksign_no_record">还没有签到记录</string>
+    <string name="summary_oksign_last_record">%1$s · %2$s · 成功 %3$d / %4$d</string>
+    <string name="summary_oksign_last_record_failed">%1$s · %2$s · 成功 %3$d / %4$d，%5$d 个失败，点击查看</string>
+    <string name="title_oksign_failed_forums">签到失败的吧</string>
+    <string name="text_oksign_failed_forum">%1$s吧：%2$s</string>
+    <string name="toast_oksign_retry_started">正在重签失败的吧</string>
     <string name="title_forum_info">关于本吧</string>
     <string name="btn_post">发贴</string>
     <string name="btn_refresh">刷新</string>

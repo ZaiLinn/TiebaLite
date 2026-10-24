@@ -4,17 +4,18 @@ import android.content.Context
 import android.util.Log
 import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.CommonResponse
-import com.huanchengfly.tieba.post.api.models.MSignBean
+import com.huanchengfly.tieba.post.api.models.GetForumListBean
 import com.huanchengfly.tieba.post.api.models.SignResultBean
 import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaApiException
 import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorCode
 import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import com.huanchengfly.tieba.post.models.SignDataBean
 import com.huanchengfly.tieba.post.models.database.Account
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import java.util.concurrent.ThreadLocalRandom
@@ -89,17 +90,21 @@ class MultiAccountSigner(
 
 class SingleAccountSigner(
     context: Context,
-    private val account: Account
+    private val account: Account,
+    /** 不为 null 时只重签这些吧（上次签到失败的），不再拉取关注列表 */
+    private val retryForums: List<OKSignRecord.Failure>? = null,
 ) : IOKSigner(context) {
     companion object {
         const val TAG = "SingleAccountSigner"
+
+        /** 「亲，你之前已经签过了」 */
+        private const val ERROR_ALREADY_SIGNED = 160002
     }
 
     private val signData: MutableList<SignDataBean> = mutableListOf()
-    private var position = 0
+    private val failures: MutableList<OKSignRecord.Failure> = mutableListOf()
     private var successCount = 0
     private var totalCount = 0
-    private var mSignCount = 0
 
     var lastFailure: Throwable? = null
 
@@ -110,15 +115,15 @@ class SingleAccountSigner(
         return this
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override suspend fun start(): Boolean {
-        var result = false
         signData.clear()
+        failures.clear()
+        successCount = 0
         // 先用本地保存的账号信息兜底：刷新账号（登录、zid、用户信息）任一步失败，
         // 之前会直接抛出让签到进程崩掉，表现为点了一键签到毫无反应
         var userName = account.name
         var tbs = account.tbs
-        Log.i(TAG, "start")
+        Log.i(TAG, "start, retry = ${retryForums != null}")
 
         try {
             AccountUtil.fetchAccountFlow(account).collect { acc ->
@@ -129,7 +134,96 @@ class SingleAccountSigner(
             Log.w(TAG, "refresh account failed, use saved account info", e)
         }
 
-        // Collect ALL followed forums via paginated API
+        val forums: List<Pair<String, String>>
+        if (retryForums != null) {
+            forums = retryForums.map { it.forumId to it.forumName }
+        } else {
+            val (allForums, fetchFailure) = fetchAllForums()
+            if (allForums.isEmpty()) {
+                // 拉取关注列表失败时之前会显示「没有可签到的吧」，让人以为签到正常结束了
+                withContext(Dispatchers.Main) {
+                    if (fetchFailure != null) {
+                        mProgressListener?.onFailure(
+                            0, 0, fetchFailure.getErrorCode(), fetchFailure.getErrorMessage()
+                        )
+                    } else {
+                        mProgressListener?.onFinish(false, 0, 0)
+                    }
+                }
+                return false
+            }
+            forums = allForums
+        }
+
+        forums.forEach {
+            signData.add(SignDataBean(it.second, it.first, userName, tbs, false))
+        }
+        totalCount = signData.size
+        withContext(Dispatchers.Main) {
+            mProgressListener?.onStart(totalCount)
+        }
+
+        // 官方一键签到一次能签一批吧，先用它签掉能签的，剩下的再逐个签。重签时逐个签，好拿到具体失败原因
+        val signedIds = if (retryForums == null && context.appPreferences.oksignUseOfficialOksign) {
+            withContext(Dispatchers.Main) {
+                mProgressListener?.onOfficialSignStart()
+            }
+            officialSign(tbs)
+        } else {
+            emptySet()
+        }
+        val remaining = signData.filter { it.forumId !in signedIds }
+        successCount = totalCount - remaining.size
+        Log.i(TAG, "official sign done: $successCount, remaining: ${remaining.size}")
+
+        remaining.forEachIndexed { index, data ->
+            val current = successCount + failures.size
+            withContext(Dispatchers.Main) {
+                mProgressListener?.onProgressStart(data, current, totalCount)
+            }
+            try {
+                val result = signFlow(data).first()
+                successCount += 1
+                withContext(Dispatchers.Main) {
+                    mProgressListener?.onProgressFinish(data, result, current, totalCount)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e.getErrorCode() == ERROR_ALREADY_SIGNED) {
+                    successCount += 1
+                } else {
+                    lastFailure = e
+                    failures.add(
+                        OKSignRecord.Failure(
+                            data.forumId, data.forumName, e.getErrorCode(), e.getErrorMessage()
+                        )
+                    )
+                    withContext(Dispatchers.Main) {
+                        mProgressListener?.onFailure(
+                            current, totalCount, e.getErrorCode(), e.getErrorMessage()
+                        )
+                    }
+                }
+            }
+            if (index < remaining.lastIndex) delay(getSignDelay())
+        }
+
+        saveRecord(userName)
+
+        withContext(Dispatchers.Main) {
+            mProgressListener?.onFinish(
+                successCount == totalCount,
+                successCount,
+                totalCount
+            )
+        }
+
+        return successCount > 0
+    }
+
+    /** 分页拉取全部关注的吧，返回 (吧 id, 吧名) 列表和拉取失败的原因 */
+    private fun fetchAllForums(): Pair<List<Pair<String, String>>, Throwable?> {
         val myUid = AccountUtil.getUid() ?: ""
         val allForums = mutableListOf<Pair<String, String>>()
         val seenIds = mutableSetOf<String>()
@@ -173,80 +267,96 @@ class SingleAccountSigner(
             if (allForums.size >= pageSize * 15) hasMore = false // safety: max 3000
         }
         Log.i(TAG, "Collected ${allForums.size} forums for signing")
+        return allForums to fetchFailure
+    }
 
-        if (allForums.isEmpty()) {
-            // 拉取关注列表失败时之前会显示「没有可签到的吧」，让人以为签到正常结束了
-            val failure = fetchFailure
-            withContext(Dispatchers.Main) {
-                if (failure != null) {
-                    mProgressListener?.onFailure(
-                        0, 0, failure.getErrorCode(), failure.getErrorMessage()
-                    )
-                } else {
-                    mProgressListener?.onFinish(false, 0, 0)
+    /**
+     * 官方一键签到：getForumList 给出今天的签到状态和可用一键签到的最低等级，
+     * 再按 msign_step_num 分批调用 msign。返回已签上的吧 id（含今天之前就签过的）。
+     * 任何一步出错都只是少签几个，剩下的交给逐个签到。
+     */
+    private suspend fun officialSign(tbs: String): Set<String> {
+        val signedIds = mutableSetOf<String>()
+        try {
+            val plan = planOfficialSign(TiebaApi.getInstance().getForumListFlow().first())
+            signedIds.addAll(plan.alreadySigned)
+            plan.batches.forEach { chunk ->
+                try {
+                    val result = TiebaApi.getInstance().mSign(chunk.joinToString(","), tbs).first()
+                    @Suppress("USELESS_ELVIS")
+                    (result.info ?: emptyList())
+                        .filter { it.signed == "1" }
+                        .mapTo(signedIds) { it.forumId }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "msign failed", e)
                 }
             }
-            return false
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "official sign failed", e)
         }
+        return signedIds
+    }
 
-        // Build sign data
-        allForums.forEach {
-            signData.add(SignDataBean(it.second, it.first, userName, tbs, false))
-        }
-        totalCount = signData.size
-        successCount = 0
-        withContext(Dispatchers.Main) {
-            mProgressListener?.onStart(totalCount)
-        }
-
-        // Sign each forum — handle individual failures without stopping
-        signData.asFlow()
-            .onEach { data ->
-                position = signData.indexOf(data)
-                withContext(Dispatchers.Main) {
-                    mProgressListener?.onProgressStart(data, position, totalCount)
-                }
-            }
-            .flatMapConcat { data ->
-                signFlow(data)
-                    .catch { e ->
-                        lastFailure = e
-                        withContext(Dispatchers.Main) {
-                            mProgressListener?.onFailure(
-                                signData.indexOf(data), totalCount,
-                                e.getErrorCode(), e.getErrorMessage()
-                            )
-                        }
-                        delay(getSignDelay())
-                    }
-            }
-            .collect {
-                result = true
-                successCount += 1
-                withContext(Dispatchers.Main) {
-                    mProgressListener?.onProgressFinish(
-                        signData[position], it, position, totalCount
-                    )
-                }
-                delay(getSignDelay())
-            }
-
-        withContext(Dispatchers.Main) {
-            mProgressListener?.onFinish(
-                successCount == totalCount,
-                successCount,
-                totalCount
+    private fun saveRecord(userName: String) {
+        val previous = if (retryForums != null) OKSignRecord.load(context) else null
+        val record = if (previous != null) {
+            // 重签只覆盖上次失败的那部分
+            previous.copy(
+                time = System.currentTimeMillis(),
+                successCount = previous.successCount + successCount,
+                failures = failures.toList(),
+            )
+        } else {
+            OKSignRecord(
+                time = System.currentTimeMillis(),
+                userName = userName,
+                total = totalCount,
+                successCount = successCount,
+                failures = failures.toList(),
             )
         }
-
-        return result
+        OKSignRecord.save(context, record)
     }
+}
+
+internal data class OfficialSignPlan(
+    /** 今天已经签过的吧 */
+    val alreadySigned: Set<String>,
+    /** 每批一次 msign 请求的吧 id */
+    val batches: List<List<String>>,
+)
+
+private const val DEFAULT_MSIGN_STEP = 50
+
+/**
+ * 根据 getForumList 的结果决定官方一键签到签哪些吧：等级不低于 level 且今天没签的，
+ * 按 msign_step_num 分批。can_use 不为 1 时不能用官方一键签到。
+ * 字段是 Gson 填的，接口缺字段时可能为 null，所以都按可空处理。
+ */
+@Suppress("USELESS_ELVIS", "UNNECESSARY_SAFE_CALL", "SENSELESS_COMPARISON")
+internal fun planOfficialSign(forumList: GetForumListBean): OfficialSignPlan {
+    val forumInfo = forumList.forumInfo ?: emptyList()
+    val alreadySigned = forumInfo.filter { it.isSignIn == "1" && it.forumId != null }
+        .map { it.forumId }.toSet()
+    val minLevel = forumList.level?.toIntOrNull()
+    if (forumList.canUse != "1" || minLevel == null) return OfficialSignPlan(alreadySigned, emptyList())
+    val step = forumList.msignStepNum?.toIntOrNull()?.takeIf { it > 0 } ?: DEFAULT_MSIGN_STEP
+    val ids = forumInfo
+        .filter { it.isSignIn != "1" && it.forumId != null && (it.userLevel?.toIntOrNull() ?: 0) >= minLevel }
+        .map { it.forumId }
+    return OfficialSignPlan(alreadySigned, ids.chunked(step))
 }
 
 interface ProgressListener {
     fun onStart(
         total: Int
     )
+
+    fun onOfficialSignStart() {}
 
     fun onProgressStart(
         signDataBean: SignDataBean,
