@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.rounded.ChromeReaderMode
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Face6
 import androidx.compose.material.icons.rounded.FaceRetouchingOff
 import androidx.compose.material.icons.rounded.FormatListNumbered
@@ -118,6 +119,7 @@ internal fun ThreadMenu(
     onJumpPageClick: () -> Unit,
     onJumpFloorClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onExportClick: () -> Unit,
     onShareClick: () -> Unit,
     onCopyLinkClick: () -> Unit,
     onReportClick: () -> Unit,
@@ -247,6 +249,13 @@ internal fun ThreadMenu(
                 text = stringResource(id = R.string.title_thread_search),
                 iconColor = ExtendedTheme.colors.text,
                 onClick = onSearchClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ListMenuItem(
+                icon = Icons.Rounded.Download,
+                text = stringResource(id = R.string.title_export_thread),
+                iconColor = ExtendedTheme.colors.text,
+                onClick = onExportClick,
                 modifier = Modifier.fillMaxWidth(),
             )
             ListMenuItem(

@@ -1,7 +1,11 @@
 package com.huanchengfly.tieba.post.ui.page.thread
 
 import android.net.Uri
+import android.provider.DocumentsContract
+import com.huanchengfly.tieba.post.api.retrofit.exception.getErrorMessage
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -56,6 +60,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -639,6 +645,59 @@ fun ThreadPage(
         },
     )
 
+    val exportDialogState = rememberDialogState()
+    val exportProgressDialogState = rememberDialogState()
+    var exportSeeLz by remember { mutableStateOf(false) }
+    var exportPage by remember { mutableIntStateOf(0) }
+    var exportTotalPage by remember { mutableIntStateOf(0) }
+    var exportJob by remember { mutableStateOf<Job?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/markdown")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        exportJob = coroutineScope.launch {
+            exportPage = 0
+            exportTotalPage = 0
+            exportProgressDialogState.show()
+            val result = runCatching {
+                val exported = fetchThreadForExport(threadId, curForumId, exportSeeLz) { page, total ->
+                    exportPage = page
+                    exportTotalPage = total
+                }
+                writeText(context, uri, exported.toMarkdown())
+                exported.posts.size
+            }
+            exportProgressDialogState.show = false
+            val error = result.exceptionOrNull()
+            if (error != null) {
+                // 取消或失败时删掉选好位置后系统建的空文件
+                runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                if (error is CancellationException) return@launch
+                Log.e("ThreadPage", "export failed", error)
+            }
+            scaffoldState.snackbarHostState.showSnackbar(
+                if (error == null) context.getString(R.string.toast_export_success, result.getOrThrow())
+                else context.getString(R.string.toast_export_failed, error.getErrorMessage())
+            )
+        }
+    }
+    ExportThreadDialog(
+        dialogState = exportDialogState,
+        onExport = { seeLz ->
+            exportSeeLz = seeLz
+            val name = threadTitle.ifBlank { threadId.toString() }
+                .replace(Regex("[\\\\/:*?\"<>|\\s]+"), "_")
+                .take(60)
+            exportLauncher.launch("$name.md")
+        },
+    )
+    ExportProgressDialog(
+        dialogState = exportProgressDialogState,
+        page = exportPage,
+        totalPage = exportTotalPage,
+        onCancel = { exportJob?.cancel() },
+    )
+
     LaunchedEffect(Unit) {
         if (from == ThreadPageFrom.FROM_STORE && extra is ThreadPageFromStoreExtra && extra.maxPid != postId) {
             val result = scaffoldState.snackbarHostState.showSnackbar(
@@ -1010,6 +1069,10 @@ fun ThreadPage(
                             onSearchClick = {
                                 closeBottomSheet()
                                 searchDialogState.show()
+                            },
+                            onExportClick = {
+                                closeBottomSheet()
+                                exportDialogState.show()
                             },
                             onShareClick = {
                                 TiebaUtil.shareText(

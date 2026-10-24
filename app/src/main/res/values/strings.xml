@@ -267,6 +267,13 @@
     <string name="title_thread_search_result">“%1$s” %2$d 处</string>
     <string name="tip_thread_search_no_result">已加载的楼层里没有找到。往下翻加载更多楼层后可以再搜</string>
     <string name="button_close">关闭</string>
+    <string name="title_export_thread">导出帖子</string>
+    <string name="tip_export_thread">把帖子逐页下载下来，存成一个 Markdown 文件。图片保留链接，不下载图片本身。楼层多时需要一点时间</string>
+    <string name="button_export_all">导出整帖</string>
+    <string name="button_export_see_lz">只导出楼主</string>
+    <string name="tip_export_progress">正在下载第 %1$d / %2$d 页</string>
+    <string name="toast_export_success">已导出 %1$d 层楼</string>
+    <string name="toast_export_failed">导出失败：%1$s</string>
     <string name="title_backup">备份数据</string>
     <string name="summary_backup">把设置、屏蔽规则、草稿、置顶的吧和浏览历史导出成文件。不含账号登录信息</string>
     <string name="title_restore">恢复数据</string>
