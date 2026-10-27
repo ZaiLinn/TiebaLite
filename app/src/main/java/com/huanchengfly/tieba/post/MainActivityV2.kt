@@ -271,6 +271,15 @@ class MainActivityV2 : BaseComposeActivity() {
     }
 
     private fun checkIntent(intent: Intent): Boolean {
+        // 消息通知不走 NavController.handleDeepLink：通知的 intent 带 NEW_TASK，
+        // handleDeepLink 会清栈重建 Activity，点通知后有时只是回到首页
+        if (intent.data?.scheme == "tblite" && intent.data?.host == "notifications") {
+            val initialTab = intent.data?.lastPathSegment?.toIntOrNull() ?: 0
+            // 清掉 data，免得冷启动时 NavHost 再按深链接导航一次
+            intent.data = null
+            navigate("notifications/$initialTab")
+            return true
+        }
         return if (intent.data?.scheme == "com.baidu.tieba" && intent.data?.host == "unidispatch") {
             val uri = intent.data!!
             when (uri.path.orEmpty().lowercase()) {

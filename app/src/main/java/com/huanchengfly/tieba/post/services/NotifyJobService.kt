@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.huanchengfly.tieba.post.MainActivityV2
 import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.MsgBean
@@ -138,8 +139,8 @@ class NotifyJobService : JobService() {
             .setContentIntent(
                 PendingIntent.getActivity(
                     this,
-                    0,
-                    intent,
+                    id,
+                    intent.setClass(this, MainActivityV2::class.java),
                     pendingIntentFlagImmutable()
                 )
             )
