@@ -140,6 +140,11 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
         defaultValue = "0"
     )
 
+    /** 帖子里楼中楼预览按发布时间排序（默认按点赞） */
+    var subPostSortByTime by DataStoreDelegates.boolean(defaultValue = false)
+
+    var hideIpLocation by DataStoreDelegates.boolean(defaultValue = false)
+
     var startupPage by DataStoreDelegates.string(
         key = "startup_page",
         defaultValue = "home"

@@ -530,7 +530,8 @@ private fun getDescText(
 ): String {
     val texts = listOfNotNull(
         time?.let { DateTimeUtils.getRelativeTimeString(App.INSTANCE, it) },
-        ipAddress?.let { App.INSTANCE.getString(R.string.text_ip_location, it) }
+        ipAddress?.takeUnless { App.INSTANCE.appPreferences.hideIpLocation }
+            ?.let { App.INSTANCE.getString(R.string.text_ip_location, it) }
     )
     if (texts.isEmpty()) return ""
     return texts.joinToString(" ")

@@ -979,7 +979,7 @@ private fun UserProfileDetail(
                 },
                 onClick = onCopyIdClick
             )
-            if (user.get { ip_address }.isNotEmpty()) {
+            if (user.get { ip_address }.isNotEmpty() && !LocalContext.current.appPreferences.hideIpLocation) {
                 Chip(
                     text = stringResource(
                         id = R.string.text_profile_ip_location,

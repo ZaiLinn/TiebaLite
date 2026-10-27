@@ -28,6 +28,7 @@ import com.huanchengfly.tieba.post.api.retrofit.ApiResult
 import com.huanchengfly.tieba.post.api.retrofit.RetrofitTiebaApi
 import com.huanchengfly.tieba.post.toJson
 import com.huanchengfly.tieba.post.utils.AccountUtil
+import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
 import retrofit2.Call
@@ -348,7 +349,8 @@ object ThreadApiImpl : IThreadApi {
                         banner = 0,
                         broadcast_id = 0,
                         floor_rn = 4,
-                        floor_sort_type = 1,
+                        // 1 = 按热度，0 = 按时间
+                        floor_sort_type = if (App.INSTANCE.appPreferences.subPostSortByTime) 0 else 1,
                         from_push = 0,
                         from_smart_frs = 0,
                         immersion_video_comment_source = 0,

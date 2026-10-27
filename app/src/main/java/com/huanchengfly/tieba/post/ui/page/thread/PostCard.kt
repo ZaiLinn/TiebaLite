@@ -85,7 +85,7 @@ private fun getDescText(
     val texts = listOfNotNull(
         time?.let { getRelativeTimeString(App.INSTANCE, it) },
         if (floor > 1) App.INSTANCE.getString(R.string.tip_post_floor, floor) else null,
-        if (ipAddress.isNullOrEmpty()) null else App.INSTANCE.getString(
+        if (ipAddress.isNullOrEmpty() || App.INSTANCE.appPreferences.hideIpLocation) null else App.INSTANCE.getString(
             R.string.text_ip_location,
             ipAddress
         )

@@ -506,6 +506,10 @@
     <string name="settings_block_lottery_thread_summary">隐藏推荐和吧页面中的抽奖活动帖</string>
     <string name="settings_block_score_thread">不看打分贴</string>
     <string name="settings_block_score_thread_summary">隐藏推荐和吧页面中的打分帖</string>
+    <string name="settings_sub_post_sort_by_time">楼中楼按时间排序</string>
+    <string name="settings_sub_post_sort_by_time_summary">帖子里每层下方的楼中楼预览按发布时间排列，而不是按点赞</string>
+    <string name="settings_hide_ip_location">隐藏 IP 属地</string>
+    <string name="settings_hide_ip_location_summary">帖子、楼中楼和个人主页不再显示 IP 属地</string>
     <string name="settings_comment_level_filter">按等级过滤楼层</string>
     <string name="settings_comment_level_filter_summary">帖子内隐藏等级低于下方阈值的用户的回复；一楼、楼主和自己的回复始终显示</string>
     <string name="settings_comment_filter_minimum_level">最低显示等级</string>

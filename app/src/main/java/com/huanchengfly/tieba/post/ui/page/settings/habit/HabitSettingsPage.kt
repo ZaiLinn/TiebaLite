@@ -11,8 +11,10 @@ import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.outlined.CalendarViewDay
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.ImageSearch
+import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.NightsStay
 import androidx.compose.material.icons.outlined.PhotoSizeSelectActual
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SecurityUpdateWarning
 import androidx.compose.material.icons.outlined.SpeakerNotesOff
 import androidx.compose.material.icons.outlined.StarOutline
@@ -242,6 +244,40 @@ fun HabitSettingsPage(
                     },
                     summaryOn = stringResource(id = R.string.tip_collect_thread_desc_sort_on),
                     summaryOff = stringResource(id = R.string.tip_collect_thread_desc_sort)
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "subPostSortByTime",
+                    title = stringResource(id = R.string.settings_sub_post_sort_by_time),
+                    summary = stringResource(id = R.string.settings_sub_post_sort_by_time_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.Schedule,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "hideIpLocation",
+                    title = stringResource(id = R.string.settings_hide_ip_location),
+                    summary = stringResource(id = R.string.settings_hide_ip_location_summary),
+                    defaultChecked = false,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.LocationOff,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
                 )
             }
             prefsItem {

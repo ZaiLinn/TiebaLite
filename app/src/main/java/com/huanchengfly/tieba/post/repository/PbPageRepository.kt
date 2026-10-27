@@ -1,12 +1,15 @@
 package com.huanchengfly.tieba.post.repository
 
+import com.huanchengfly.tieba.post.App
 import com.huanchengfly.tieba.post.api.TiebaApi
 import com.huanchengfly.tieba.post.api.models.protos.OriginThreadInfo
+import com.huanchengfly.tieba.post.api.models.protos.SubPostList
 import com.huanchengfly.tieba.post.api.models.protos.User
 import com.huanchengfly.tieba.post.api.models.protos.pbPage.PbPageResponse
 import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaException
 import com.huanchengfly.tieba.post.api.retrofit.exception.TiebaUnknownException
 import com.huanchengfly.tieba.post.ui.page.thread.ThreadPageFrom
+import com.huanchengfly.tieba.post.utils.appPreferences
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -66,6 +69,10 @@ object PbPageRepository {
                 // NoSuchElementException，整个帖子打不开。找不到时用只有 id 的占位用户。
                 val usersById = response.data_.user_list.associateBy { it.id }
                 fun authorOf(authorId: Long, inline: User?): User = inline ?: usersById[authorId] ?: User(id = authorId)
+                // 服务器不一定认按时间排序的参数，本地再排一次楼中楼预览
+                val sortSubPostsByTime = App.INSTANCE.appPreferences.subPostSortByTime
+                fun List<SubPostList>.ordered(): List<SubPostList> =
+                    if (sortSubPostsByTime) sortedBy { it.time } else this
                 val postList = response.data_.post_list.map {
                     val author = authorOf(it.author_id, it.author)
                     it.copy(
@@ -76,7 +83,7 @@ object PbPageRepository {
                         sub_post_list = it.sub_post_list?.copy(
                             sub_post_list = it.sub_post_list.sub_post_list.map { subPost ->
                                 subPost.copy(author = authorOf(subPost.author_id, subPost.author))
-                            }
+                            }.ordered()
                         ),
                         origin_thread_info = OriginThreadInfo(
                             author = response.data_.thread.author
@@ -92,7 +99,7 @@ object PbPageRepository {
                         sub_post_list = response.data_.first_floor_post.sub_post_list?.copy(
                             sub_post_list = response.data_.first_floor_post.sub_post_list.sub_post_list.map { subPost ->
                                 subPost.copy(author = authorOf(subPost.author_id, subPost.author))
-                            }
+                            }.ordered()
                         )
                     )
 
