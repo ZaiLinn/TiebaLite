@@ -148,6 +148,12 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
     /** 浏览过的帖子缓存到本地，没网时可以看（见 ThreadCache） */
     var cacheViewedThreads by DataStoreDelegates.boolean(defaultValue = true)
 
+    /** 帖子缓存最多保留的帖子数，"0" 为不限 */
+    var threadCacheMaxThreads by DataStoreDelegates.string(defaultValue = "300")
+
+    /** 帖子缓存最大占用空间（MB），"0" 为不限 */
+    var threadCacheMaxSizeMb by DataStoreDelegates.string(defaultValue = "1024")
+
     var startupPage by DataStoreDelegates.string(
         key = "startup_page",
         defaultValue = "home"

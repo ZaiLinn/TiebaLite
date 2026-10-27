@@ -14,10 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.OfflineBolt
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,6 +42,8 @@ import com.huanchengfly.tieba.post.R
 import com.huanchengfly.tieba.post.dataStore
 import com.huanchengfly.tieba.post.ui.common.prefs.PrefsScreen
 import com.huanchengfly.tieba.post.ui.common.prefs.dependNot
+import com.huanchengfly.tieba.post.ui.common.prefs.depend
+import com.huanchengfly.tieba.post.ui.common.prefs.widgets.ListPref
 import com.huanchengfly.tieba.post.ui.common.prefs.widgets.SwitchPref
 import com.huanchengfly.tieba.post.ui.common.prefs.widgets.TextPref
 import com.huanchengfly.tieba.post.ui.page.settings.LeadingIcon
@@ -65,7 +70,7 @@ import kotlin.concurrent.thread
 private fun BackupManager.Summary.describe(context: Context): String =
     context.getString(R.string.text_backup_summary, preferences, blocks, drafts, topForums, histories)
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun MoreSettingsPage(
     navigator: NavHostController,
@@ -276,6 +281,50 @@ fun MoreSettingsPage(
                             )
                         }
                     }
+                )
+            }
+            prefsItem {
+                ListPref(
+                    key = "threadCacheMaxThreads",
+                    title = stringResource(id = R.string.title_thread_cache_max_threads),
+                    entries = listOf(50, 100, 300, 500, 1000, 3000).associate {
+                        it.toString() to stringResource(id = R.string.text_thread_cache_threads, it)
+                    } + ("0" to stringResource(id = R.string.text_unlimited)),
+                    useSelectedAsSummary = true,
+                    defaultValue = "300",
+                    enabled = depend(key = "cacheViewedThreads"),
+                    onValueChange = { thread { ThreadCache.prune() } },
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.FormatListNumbered,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                )
+            }
+            prefsItem {
+                ListPref(
+                    key = "threadCacheMaxSizeMb",
+                    title = stringResource(id = R.string.title_thread_cache_max_size),
+                    entries = listOf(256, 512, 1024, 2048, 5120, 10240).associate {
+                        it.toString() to ImageCacheUtil.getFormatSize(it * 1024.0 * 1024)
+                    } + ("0" to stringResource(id = R.string.text_unlimited)),
+                    useSelectedAsSummary = true,
+                    defaultValue = "1024",
+                    enabled = depend(key = "cacheViewedThreads"),
+                    onValueChange = { thread { ThreadCache.prune() } },
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.Storage,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
                 )
             }
             prefsItem {

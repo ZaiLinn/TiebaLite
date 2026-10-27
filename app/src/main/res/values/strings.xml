@@ -96,8 +96,12 @@
     <string name="toast_clear_picture_cache_success">成功清除图片缓存</string>
     <string name="tip_cache">当前共有缓存 %1$s</string>
     <string name="title_cache_viewed_threads">缓存浏览过的帖子</string>
-    <string name="summary_cache_viewed_threads">看过的帖子页面保存在本地，没网时打开显示缓存内容；最多保留最近 300 个帖子，不含图片</string>
+    <string name="summary_cache_viewed_threads">看过的帖子连同图片保存在本地，没网时打开显示缓存内容。已加载的图片直接保存，其余图片会另外下载，使用移动数据时会消耗流量</string>
     <string name="title_clear_thread_cache">清除帖子缓存</string>
+    <string name="title_thread_cache_max_threads">帖子缓存最多保留</string>
+    <string name="title_thread_cache_max_size">帖子缓存最大占用空间</string>
+    <string name="text_thread_cache_threads">%1$d 个帖子</string>
+    <string name="text_unlimited">不限</string>
     <string name="toast_clear_thread_cache_success">已清除帖子缓存</string>
     <string name="toast_thread_offline_cache">网络不可用，显示的是%1$s缓存的内容</string>
     <string name="tip_no_little_tail">你还没有设置小尾巴</string>
