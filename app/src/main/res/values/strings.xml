@@ -407,8 +407,9 @@
     <string name="desc_comment">评论</string>
     <string name="desc_share">分享</string>
     <string name="desc_like">赞</string>
-    <string name="title_concern">关注</string>
+    <string name="title_concern">好友</string>
     <string name="title_personalized">推荐</string>
+    <string name="title_followed_forums_feed">关注</string>
     <string name="block_type_keywords">关键词</string>
     <string name="block_type_user">用户</string>
     <string name="block_type_exact_content">完全匹配</string>

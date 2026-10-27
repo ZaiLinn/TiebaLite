@@ -79,10 +79,13 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PersonalizedPage(
-    viewModel: PersonalizedViewModel = pageViewModel()
+    onlyFollowedForums: Boolean = false,
+    viewModel: PersonalizedViewModel = pageViewModel(
+        key = if (onlyFollowedForums) "followedForums" else null
+    )
 ) {
     LazyLoad(loaded = viewModel.initialized) {
-        viewModel.send(PersonalizedUiIntent.Refresh)
+        viewModel.send(PersonalizedUiIntent.Refresh(onlyFollowedForums))
         viewModel.initialized = true
     }
     val navigator = LocalNavigator.current
@@ -116,7 +119,7 @@ fun PersonalizedPage(
     )
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
-        onRefresh = { viewModel.send(PersonalizedUiIntent.Refresh) }
+        onRefresh = { viewModel.send(PersonalizedUiIntent.Refresh(onlyFollowedForums)) }
     )
     val lazyListState = rememberLazyListState()
     viewModel.bindScrollToTopEvent(lazyListState = lazyListState)
@@ -138,9 +141,9 @@ fun PersonalizedPage(
     }
 
     onGlobalEvent<GlobalEvent.Refresh>(
-        filter = { it.key == "personalized" }
+        filter = { it.key == if (onlyFollowedForums) "followedForums" else "personalized" }
     ) {
-        viewModel.send(PersonalizedUiIntent.Refresh)
+        viewModel.send(PersonalizedUiIntent.Refresh(onlyFollowedForums))
     }
     viewModel.onEvent<PersonalizedUiEvent.RefreshSuccess> {
         refreshCount = it.count
@@ -162,7 +165,7 @@ fun PersonalizedPage(
         isEmpty = isEmpty,
         isError = isError,
         isLoading = isRefreshing,
-        onReload = { viewModel.send(PersonalizedUiIntent.Refresh) },
+        onReload = { viewModel.send(PersonalizedUiIntent.Refresh(onlyFollowedForums)) },
         errorScreen = {
             error?.let {
                 ErrorScreen(
@@ -174,7 +177,7 @@ fun PersonalizedPage(
         Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
             LoadMoreLayout(
                 isLoading = isLoadingMore,
-                onLoadMore = { viewModel.send(PersonalizedUiIntent.LoadMore(currentPage + 1)) },
+                onLoadMore = { viewModel.send(PersonalizedUiIntent.LoadMore(currentPage + 1, onlyFollowedForums)) },
                 loadEnd = false,
                 lazyListState = lazyListState,
                 isEmpty = data.isEmpty()
@@ -209,7 +212,7 @@ fun PersonalizedPage(
                             )
                         )
                     },
-                    onRefresh = { viewModel.send(PersonalizedUiIntent.Refresh) },
+                    onRefresh = { viewModel.send(PersonalizedUiIntent.Refresh(onlyFollowedForums)) },
                     onOpenForum = { navigator.navigate("forum/$it") },
                     onClickUser = { navigator.navigate("user/${it.id}") }
                 )

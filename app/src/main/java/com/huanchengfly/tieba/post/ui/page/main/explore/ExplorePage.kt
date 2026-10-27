@@ -127,6 +127,11 @@ fun ExplorePage() {
                 { TabText(text = stringResource(id = R.string.title_personalized), selected = it) },
                 { PersonalizedPage() }
             ),
+            if (loggedIn) ExplorePageItem(
+                "followedForums",
+                { TabText(text = stringResource(id = R.string.title_followed_forums_feed), selected = it) },
+                { PersonalizedPage(onlyFollowedForums = true) }
+            ) else null,
             ExplorePageItem(
                 "hot",
                 { TabText(text = stringResource(id = R.string.title_hot), selected = it) },

@@ -62,21 +62,22 @@ class PersonalizedViewModel @Inject constructor() :
         @OptIn(ExperimentalCoroutinesApi::class)
         override fun toPartialChangeFlow(intentFlow: Flow<PersonalizedUiIntent>): Flow<PersonalizedPartialChange> =
             merge(
-                intentFlow.filterIsInstance<PersonalizedUiIntent.Refresh>().flatMapConcat { produceRefreshPartialChange() },
+                intentFlow.filterIsInstance<PersonalizedUiIntent.Refresh>().flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<PersonalizedUiIntent.LoadMore>().flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<PersonalizedUiIntent.Dislike>().flatMapConcat { it.producePartialChange() },
                 intentFlow.filterIsInstance<PersonalizedUiIntent.Agree>().flatMapConcat { it.producePartialChange() },
             )
 
-        private fun produceRefreshPartialChange(): Flow<PersonalizedPartialChange.Refresh> =
+        private fun PersonalizedUiIntent.Refresh.producePartialChange(): Flow<PersonalizedPartialChange.Refresh> =
             PersonalizedRepository
-                .personalizedFlow(1, 1)
-                .map<PersonalizedResponse, PersonalizedPartialChange.Refresh> { response ->
+                .personalizedFlow(1, 1, onlyFollowedForums)
+                .map<Pair<PersonalizedResponse, Int>, PersonalizedPartialChange.Refresh> { (response, lastPage) ->
                     val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                     val data = response.toData()
                         .filterNot { ThreadTypeFilter.shouldHide(it.get(), filterOptions) }
                     val threadPersonalizedData = response.data_?.thread_personalized ?: emptyList()
                     PersonalizedPartialChange.Refresh.Success(
+                        currentPage = lastPage,
                         data = data.map { thread ->
                             val threadPersonalized =
                                 threadPersonalizedData.firstOrNull { it.tid == thread.get { id } }
@@ -90,14 +91,14 @@ class PersonalizedViewModel @Inject constructor() :
 
         private fun PersonalizedUiIntent.LoadMore.producePartialChange(): Flow<PersonalizedPartialChange.LoadMore> =
             PersonalizedRepository
-                .personalizedFlow(2, page)
-                .map<PersonalizedResponse, PersonalizedPartialChange.LoadMore> { response ->
+                .personalizedFlow(2, page, onlyFollowedForums)
+                .map<Pair<PersonalizedResponse, Int>, PersonalizedPartialChange.LoadMore> { (response, lastPage) ->
                     val filterOptions = App.INSTANCE.appPreferences.threadTypeFilterOptions
                     val data = response.toData()
                         .filterNot { ThreadTypeFilter.shouldHide(it.get(), filterOptions) }
                     val threadPersonalizedData = response.data_?.thread_personalized ?: emptyList()
                     PersonalizedPartialChange.LoadMore.Success(
-                        currentPage = page,
+                        currentPage = lastPage,
                         data = data.map { thread ->
                             val threadPersonalized =
                                 threadPersonalizedData.firstOrNull { it.tid == thread.get { id } }
@@ -143,9 +144,13 @@ class PersonalizedViewModel @Inject constructor() :
 }
 
 sealed interface PersonalizedUiIntent : UiIntent {
-    data object Refresh : PersonalizedUiIntent
+    /** @param onlyFollowedForums 只保留已关注吧的帖子（动态页「关注」标签） */
+    data class Refresh(val onlyFollowedForums: Boolean = false) : PersonalizedUiIntent
 
-    data class LoadMore(val page: Int) : PersonalizedUiIntent
+    data class LoadMore(
+        val page: Int,
+        val onlyFollowedForums: Boolean = false,
+    ) : PersonalizedUiIntent
 
     data class Agree(
         val threadId: Long,
@@ -279,7 +284,7 @@ sealed interface PersonalizedPartialChange : PartialChange<PersonalizedUiState> 
                     val newData = (data + oldState.data).distinctById()
                     oldState.copy(
                         isRefreshing = false,
-                        currentPage = 1,
+                        currentPage = currentPage,
                         data = newData,
                         refreshPosition = if (oldState.data.isEmpty()) 0 else (newData.size - oldSize),
                     )
@@ -294,6 +299,7 @@ sealed interface PersonalizedPartialChange : PartialChange<PersonalizedUiState> 
         data object Start : Refresh()
 
         data class Success(
+            val currentPage: Int,
             val data: List<ThreadItemData>,
         ) : Refresh()
 
