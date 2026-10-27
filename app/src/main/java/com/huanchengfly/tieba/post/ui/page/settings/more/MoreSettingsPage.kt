@@ -12,6 +12,8 @@ import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.OfflineBolt
@@ -50,8 +52,11 @@ import com.huanchengfly.tieba.post.ui.widgets.compose.TitleCentredToolbar
 import com.huanchengfly.tieba.post.ui.widgets.compose.rememberDialogState
 import com.huanchengfly.tieba.post.utils.BackupManager
 import com.huanchengfly.tieba.post.utils.ImageCacheUtil
+import com.huanchengfly.tieba.post.utils.ThreadCache
 import com.huanchengfly.tieba.post.utils.appPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -138,9 +143,11 @@ fun MoreSettingsPage(
         ) {
             Text(text = stringResource(id = R.string.message_restore_confirm))
         }
+        var threadCacheSize by remember { mutableStateOf("0.0B") }
         LaunchedEffect(Unit) {
             thread {
                 cacheSize = ImageCacheUtil.getCacheSize(context)
+                threadCacheSize = ImageCacheUtil.getFormatSize(ThreadCache.size(context).toDouble())
             }
         }
         PrefsScreen(
@@ -252,6 +259,46 @@ fun MoreSettingsPage(
                     title = stringResource(id = R.string.title_restore),
                     summary = stringResource(id = R.string.summary_restore),
                     onClick = { restoreDialogState.show() },
+                )
+            }
+            prefsItem {
+                SwitchPref(
+                    key = "cacheViewedThreads",
+                    title = stringResource(id = R.string.title_cache_viewed_threads),
+                    summary = stringResource(id = R.string.summary_cache_viewed_threads),
+                    defaultChecked = true,
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.CloudDownload,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                )
+            }
+            prefsItem {
+                TextPref(
+                    leadingIcon = {
+                        LeadingIcon {
+                            AvatarIcon(
+                                icon = Icons.Outlined.DeleteSweep,
+                                size = Sizes.Small,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    enabled = true,
+                    title = stringResource(id = R.string.title_clear_thread_cache),
+                    onClick = {
+                        coroutineScope.launch {
+                            withContext(Dispatchers.IO) { ThreadCache.clear(context) }
+                            threadCacheSize = "0.0B"
+                            snackbarHostState.showSnackbar(context.getString(R.string.toast_clear_thread_cache_success))
+                        }
+                    },
+                    summary = stringResource(id = R.string.tip_cache, threadCacheSize)
                 )
             }
             prefsItem {

@@ -95,6 +95,11 @@
     <string name="title_clear_picture_cache">清除图片缓存</string>
     <string name="toast_clear_picture_cache_success">成功清除图片缓存</string>
     <string name="tip_cache">当前共有缓存 %1$s</string>
+    <string name="title_cache_viewed_threads">缓存浏览过的帖子</string>
+    <string name="summary_cache_viewed_threads">看过的帖子页面保存在本地，没网时打开显示缓存内容；最多保留最近 300 个帖子，不含图片</string>
+    <string name="title_clear_thread_cache">清除帖子缓存</string>
+    <string name="toast_clear_thread_cache_success">已清除帖子缓存</string>
+    <string name="toast_thread_offline_cache">网络不可用，显示的是%1$s缓存的内容</string>
     <string name="tip_no_little_tail">你还没有设置小尾巴</string>
     <string name="button_next_time">下次再说</string>
     <string name="title_dialog_update">发现新版本 %1$s</string>

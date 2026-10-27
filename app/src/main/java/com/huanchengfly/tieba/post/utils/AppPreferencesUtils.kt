@@ -145,6 +145,9 @@ open class AppPreferencesUtils private constructor(ctx: Context) {
 
     var hideIpLocation by DataStoreDelegates.boolean(defaultValue = false)
 
+    /** 浏览过的帖子缓存到本地，没网时可以看（见 ThreadCache） */
+    var cacheViewedThreads by DataStoreDelegates.boolean(defaultValue = true)
+
     var startupPage by DataStoreDelegates.string(
         key = "startup_page",
         defaultValue = "home"
