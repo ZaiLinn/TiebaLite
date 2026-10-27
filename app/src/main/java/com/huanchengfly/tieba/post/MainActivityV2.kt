@@ -280,6 +280,9 @@ class MainActivityV2 : BaseComposeActivity() {
             navigate("notifications/$initialTab")
             return true
         }
+        if (intent.action == Intent.ACTION_VIEW && checkWebLink(intent.data)) {
+            return true
+        }
         return if (intent.data?.scheme == "com.baidu.tieba" && intent.data?.host == "unidispatch") {
             val uri = intent.data!!
             when (uri.path.orEmpty().lowercase()) {
@@ -297,6 +300,25 @@ class MainActivityV2 : BaseComposeActivity() {
         } else {
             false
         }
+    }
+
+    /** 从浏览器等处打开的贴吧网页链接：帖子、吧直接打开，其余交给内置网页 */
+    private fun checkWebLink(uri: Uri?): Boolean {
+        if (uri == null || (uri.scheme != "http" && uri.scheme != "https")) return false
+        val host = uri.host?.lowercase() ?: return false
+        if (host != "tieba.baidu.com" && host != "tiebac.baidu.com" && host != "wapp.baidu.com") return false
+        val path = uri.path.orEmpty()
+        val threadId = when {
+            path.startsWith("/p/") -> path.removePrefix("/p/").substringBefore('/').toLongOrNull()
+            else -> uri.getQueryParameter("kz")?.toLongOrNull()
+        }
+        val forumName = uri.getQueryParameter("kw") ?: uri.getQueryParameter("word")
+        when {
+            threadId != null -> navigate("thread/$threadId")
+            !forumName.isNullOrEmpty() -> navigate("forum/$forumName")
+            else -> navigate("webview/${Uri.encode(uri.toString())}")
+        }
+        return true
     }
 
     override fun onNewIntent(intent: Intent) {
